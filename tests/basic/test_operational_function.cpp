@@ -5,6 +5,7 @@
 #include "delta/core/value_metric.h"
 #include "delta/core/delta_path.h"
 #include "delta/core/operational_function.h"
+#include "delta/core/list_grid.h"
 #include <sstream> 
 using namespace delta;
 using Addr = Rational;
@@ -12,7 +13,7 @@ using Value = Rational;
 using Compare = std::less<Addr>;
 
 TEST(OperationalFunctionTest, CreateAndQuery) {
-    Grid<Addr, Compare> grid({ 0_r, 1_r, 2_r });
+    ListGrid<Addr, Compare> grid({ 0_r, 1_r, 2_r });
     OperationalFunction<Addr, Value> func(grid, [](const Addr& x) { return x * x; });
 
     EXPECT_EQ(func(0_r), 0_r);
@@ -21,7 +22,7 @@ TEST(OperationalFunctionTest, CreateAndQuery) {
 }
 
 TEST(OperationalFunctionTest, ExtendMidpoint) {
-    Grid<Addr, Compare> grid0({ 0_r, 1_r });
+    ListGrid<Addr, Compare> grid0({ 0_r, 1_r });
     OperationalFunction<Addr, Value> func(grid0, [](const Addr& x) { return x; });
 
     auto grid1 = grid0.refine([](const Addr& x, const Addr& y) { return (x + y) / 2_r; });

@@ -5,6 +5,7 @@
 #include "delta/core/value_metric.h"
 #include "delta/core/delta_path.h"
 #include "delta/core/operational_function.h"
+#include "delta/core/list_grid.h"
 #include <sstream> 
 using namespace delta;
 
@@ -17,7 +18,7 @@ using ValMetric = EuclideanValueMetric;
 using Compare = std::less<Addr>;
 
 TEST(Sqrt2Test, DyadicApproximation) {
-    Grid<Addr, Compare> grid0({0_r, 2_r});
+    ListGrid<Addr, Compare> grid0({0_r, 2_r});
 
     auto mid_op = [](const Addr& x, const Addr& y, const auto&) { return (x + y) / 2_r; };
     using OpFunc = decltype(mid_op);
@@ -27,7 +28,7 @@ TEST(Sqrt2Test, DyadicApproximation) {
     DeltaPath<Addr, Val, Dist, Between, AddrMetric, ValMetric, Compare>
         path(grid0, strategy, Between{}, AddrMetric{}, ValMetric{});
 
-    auto contains_sqrt2 = [](const Grid<Addr, Compare>& grid) -> Addr {
+    auto contains_sqrt2 = [](const ListGrid<Addr, Compare>& grid) -> Addr {
         const auto& data = grid.data();
         for (size_t i = 0; i + 1 < data.size(); ++i) {
             if (data[i] <= 141421356_r/100000000_r && data[i+1] >= 141421356_r/100000000_r) {

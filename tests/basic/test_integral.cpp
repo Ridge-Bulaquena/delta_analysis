@@ -5,6 +5,7 @@
 #include "delta/core/value_metric.h"
 #include "delta/core/delta_path.h"
 #include "delta/core/operational_function.h"
+#include "delta/core/list_grid.h"
 #include <sstream> 
 using namespace delta;
 
@@ -30,7 +31,7 @@ Rational left_riemann_sum(const Path& path, const typename Path::Func& func) {
 TEST(IntegralTest, DyadicX) {
     auto func_val = [](const Addr& x) { return x; };
 
-    Grid<Addr, Compare> grid0({0_r, 1_r});
+    ListGrid<Addr, Compare> grid0({0_r, 1_r});
     auto mid_op = [](const Addr& x, const Addr& y, const auto&) { return (x + y) / 2_r; };
     using OpFunc = decltype(mid_op);
     using Strategy = StaticStrategy<Addr, Val, Dist, Between, AddrMetric, ValMetric>;

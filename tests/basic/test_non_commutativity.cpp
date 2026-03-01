@@ -5,6 +5,7 @@
 #include "delta/core/rational.h"
 #include "delta/core/value_metric.h"
 #include "delta/core/regulative_idea.h"
+#include "delta/core/list_grid.h"
 
 using namespace delta;
 
@@ -54,7 +55,7 @@ TEST(NonCommutativityTest, Lambda13vs23) {
     auto comp23_then_13 = std::make_shared<CompositeStrategy<Addr, Val, Dist, Between, AddrMetric, ValMetric>>(
         comp_strats, comp_lengths);
 
-    Grid<Addr, Compare> grid0({ 0_r, 1_r });
+    ListGrid<Addr, Compare> grid0({ 0_r, 1_r });
 
     DeltaPath<Addr, Val, Dist, Between, AddrMetric, ValMetric, Compare>
         path1(grid0, comp13_then_23, Between{}, AddrMetric{}, ValMetric{});

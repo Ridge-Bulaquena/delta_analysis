@@ -12,5 +12,7 @@ vcpkg-configuration.json
 *.sln
 *.vcxproj*
 
-#dev tools
+#local dev crutch-tools
 devjournal.md
+concat_codebase_to_txt.bat
+combined_codebase.txt

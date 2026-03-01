@@ -5,6 +5,7 @@
 #include "delta/core/value_metric.h"
 #include "delta/core/delta_path.h"
 #include "delta/core/operational_function.h"
+#include "delta/core/list_grid.h"
 #include <sstream> 
 using namespace delta;
 
@@ -17,7 +18,7 @@ using ValMetric = EuclideanValueMetric;
 using Compare = std::less<Addr>;
 
 TEST(DeltaPathTest, BasicDyadicPath) {
-    Grid<Addr, Compare> grid0({ 0_r, 1_r });
+   ListGrid<Addr, Compare> grid0({ 0_r, 1_r });
 
     auto mid_op = [](const Addr& x, const Addr& y,
         const IntervalInfo<Addr, Val, Dist, Between, AddrMetric, ValMetric>&) {

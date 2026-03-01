@@ -13,7 +13,7 @@ add_executable(delta_tests
     test_sqrt2.cpp
     test_non_commutativity.cpp
     test_differentiability.cpp
-)
+ "test_grid_concepts.cpp")
 
 set_target_properties(delta_tests PROPERTIES CXX_STANDARD 20)
 
