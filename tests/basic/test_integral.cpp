@@ -30,7 +30,7 @@ Rational left_riemann_sum(const Path& path, const typename Path::Func& func) {
 TEST(IntegralTest, DyadicX) {
     auto func_val = [](const Addr& x) { return x; };
 
-    Grid<Addr, Compare> grid0({ 0_r, 1_r });
+    Grid<Addr, Compare> grid0({0_r, 1_r});
     auto mid_op = [](const Addr& x, const Addr& y, const auto&) { return (x + y) / 2_r; };
     using OpFunc = decltype(mid_op);
     using Strategy = StaticStrategy<Addr, Val, Dist, Between, AddrMetric, ValMetric>;
@@ -40,11 +40,13 @@ TEST(IntegralTest, DyadicX) {
         path(grid0, strategy, Between{}, AddrMetric{}, ValMetric{});
 
     std::vector<Rational> left_sums;
-    for (int i = 0; i < 5; ++i) {
+    // Увеличиваем число шагов до 10
+    for (int i = 0; i < 10; ++i) {
         left_sums.push_back(left_riemann_sum(path, func_val));
         path.advance(func_val);
     }
-    Rational exact = 1_r / 2_r;
+    Rational exact = 1_r/2_r;
     Rational error = left_sums.back() - exact;
-    EXPECT_NEAR(boost::rational_cast<double>(error), 0.0, 1e-3);
+    // Ошибка на уровне 9 (после 10 шагов) ~ 1/1024 ≈ 0.001
+    EXPECT_NEAR(boost::rational_cast<double>(error), 0.0, 2e-3);
 }

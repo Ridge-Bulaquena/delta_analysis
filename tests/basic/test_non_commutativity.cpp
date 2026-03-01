@@ -1,11 +1,11 @@
 // tests/basic/test_non_commutativity.cpp
 #include <gtest/gtest.h>
-#include "delta/core/rational.h"
-#include "delta/core/regulative_idea.h"
-#include "delta/core/value_metric.h"
+#include <sstream>
 #include "delta/core/delta_path.h"
-#include "delta/core/operational_function.h"
-#include <sstream> 
+#include "delta/core/rational.h"
+#include "delta/core/value_metric.h"
+#include "delta/core/regulative_idea.h"
+
 using namespace delta;
 
 using Addr = Rational;
@@ -15,6 +15,9 @@ using Between = LessBetweenness;
 using AddrMetric = EuclideanMetric;
 using ValMetric = EuclideanValueMetric;
 using Compare = std::less<Addr>;
+
+// Определяем общий тип для операторной функции
+using OpFunc = DeltaOperatorFunc<Addr, Val, Dist, Between, AddrMetric, ValMetric>;
 
 template<typename Grid>
 std::string grid_to_string(const Grid& g) {
@@ -36,7 +39,6 @@ TEST(NonCommutativityTest, Lambda13vs23) {
         return x + 2_r * (y - x) / 3_r;
         };
 
-    using OpFunc = decltype(op13);
     using Strategy = StaticStrategy<Addr, Val, Dist, Between, AddrMetric, ValMetric>;
 
     auto strategy13 = std::make_shared<Strategy>(OpFunc(op13));

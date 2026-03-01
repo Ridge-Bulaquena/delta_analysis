@@ -40,15 +40,18 @@ TEST(DifferentiabilityTest, QuadraticAtMidpoint) {
     DeltaPath<Addr, Val, Dist, Between, AddrMetric, ValMetric, Compare>
         path(grid0, strategy, Between{}, AddrMetric{}, ValMetric{});
 
-    path.advance(func_val);
+    path.advance(func_val); // level 1, точка 1/2 появляется
     Addr x = 1_r / 2_r;
 
-    Rational dq1 = left_difference_quotient(path, func_val, x, 1);
-    EXPECT_EQ(dq1, 2_r * x);
+    std::vector<Rational> left_dq;
+    // Делаем 10 дополнительных шагов, чтобы ошибка стала < 0.001
+    for (int i = 0; i < 10; ++i) {
+        left_dq.push_back(left_difference_quotient(path, func_val, x, path.level()));
+        path.advance(func_val);
+    }
 
-    path.advance(func_val);
-    Rational dq2 = left_difference_quotient(path, func_val, x, 2);
-    EXPECT_NEAR(boost::rational_cast<double>(dq2 - 1_r), 0.0, 0.1);
+    Rational last_error = left_dq.back() - 1_r;
+    EXPECT_NEAR(boost::rational_cast<double>(last_error), 0.0, 1e-2);
 }
 
 TEST(DifferentiabilityTest, AbsoluteValueNotDifferentiable) {

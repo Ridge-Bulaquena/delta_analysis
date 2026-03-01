@@ -17,6 +17,10 @@ target_include_directories(delta_core INTERFACE
     "${CMAKE_SOURCE_DIR}/include"
 )
 
+if(MSVC)
+    target_compile_options(delta_core INTERFACE /EHsc)
+endif()
+
 # Включите подпроекты.
 add_subdirectory ("src")
 add_subdirectory ("tests/basic")

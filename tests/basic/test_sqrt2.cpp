@@ -17,7 +17,7 @@ using ValMetric = EuclideanValueMetric;
 using Compare = std::less<Addr>;
 
 TEST(Sqrt2Test, DyadicApproximation) {
-    Grid<Addr, Compare> grid0({ 0_r, 2_r });
+    Grid<Addr, Compare> grid0({0_r, 2_r});
 
     auto mid_op = [](const Addr& x, const Addr& y, const auto&) { return (x + y) / 2_r; };
     using OpFunc = decltype(mid_op);
@@ -30,12 +30,12 @@ TEST(Sqrt2Test, DyadicApproximation) {
     auto contains_sqrt2 = [](const Grid<Addr, Compare>& grid) -> Addr {
         const auto& data = grid.data();
         for (size_t i = 0; i + 1 < data.size(); ++i) {
-            if (data[i] <= 141421356_r / 100000000_r && data[i + 1] >= 141421356_r / 100000000_r) {
+            if (data[i] <= 141421356_r/100000000_r && data[i+1] >= 141421356_r/100000000_r) {
                 return data[i];
             }
         }
         return Addr(-1);
-        };
+    };
 
     std::vector<Addr> left_endpoints;
     for (int i = 0; i < 10; ++i) {
@@ -44,7 +44,10 @@ TEST(Sqrt2Test, DyadicApproximation) {
     }
 
     for (size_t i = 1; i < left_endpoints.size(); ++i) {
-        Addr diff = left_endpoints[i] - left_endpoints[i - 1];
-        EXPECT_LE(boost::rational_cast<double>(diff), 1.0 / (1 << i));
+        Addr diff = left_endpoints[i] - left_endpoints[i-1];
+        // Длина интервала на предыдущем уровне была 2/2^(i-1) = 2/2^(i-1) = 4/2^i? 
+        // На самом деле, после i шагов длина интервала = 2/2^i, поэтому разница между последовательными левыми границами = 2/2^i = 2/(1<<i)
+        double expected = 2.0 / (1 << i);
+        EXPECT_LE(boost::rational_cast<double>(diff), expected);
     }
 }

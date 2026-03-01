@@ -11,3 +11,6 @@ vcpkg-configuration.json
 *.user
 *.sln
 *.vcxproj*
+
+#dev tools
+devjournal.md
