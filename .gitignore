@@ -1,0 +1,13 @@
+# garbage from CMake
+/out/
+/build/
+/.vs/
+
+# vcpkg local libraries
+/vcpkg_installed/
+vcpkg-configuration.json
+
+# Temp files
+*.user
+*.sln
+*.vcxproj*
