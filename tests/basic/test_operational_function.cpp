@@ -13,8 +13,8 @@ using Value = Rational;
 using Compare = std::less<Addr>;
 
 TEST(OperationalFunctionTest, CreateAndQuery) {
-    ListGrid<Addr, Compare> grid({ 0_r, 1_r, 2_r });
-    OperationalFunction<Addr, Value> func(grid, [](const Addr& x) { return x * x; });
+    ListGrid<Addr, Compare> grid({0_r, 1_r, 2_r});
+    OperationalFunction<Addr, Value, decltype(grid)> func(grid, [](const Addr& x) { return x * x; });
 
     EXPECT_EQ(func(0_r), 0_r);
     EXPECT_EQ(func(1_r), 1_r);
@@ -22,8 +22,8 @@ TEST(OperationalFunctionTest, CreateAndQuery) {
 }
 
 TEST(OperationalFunctionTest, ExtendMidpoint) {
-    ListGrid<Addr, Compare> grid0({ 0_r, 1_r });
-    OperationalFunction<Addr, Value> func(grid0, [](const Addr& x) { return x; });
+    ListGrid<Addr, Compare> grid0({0_r, 1_r});
+    OperationalFunction<Addr, Value, decltype(grid0)> func(grid0, [](const Addr& x) { return x; });
 
     auto grid1 = grid0.refine([](const Addr& x, const Addr& y) { return (x + y) / 2_r; });
     func.extend(grid0, grid1, [](const Addr& x, const Addr& y,

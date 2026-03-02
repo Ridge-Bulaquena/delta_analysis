@@ -4,7 +4,7 @@
 #include <concepts>
 #include <functional>
 #include "interval_info.h"
-
+#include "rational.h"
 namespace delta {
 
     // -----------------------------------------------------------------------------
@@ -102,7 +102,7 @@ namespace delta {
      */
     class AdaptiveOperator {
     public:
-        AdaptiveOperator(double threshold, double epsilon = 0.1)
+        AdaptiveOperator(const Rational& threshold, const Rational& epsilon)
             : threshold_(threshold), epsilon_(epsilon) {
         }
 
@@ -111,21 +111,39 @@ namespace delta {
         Addr operator()(const Addr& left, const Addr& right,
             const IntervalInfo<Addr, Value, Distance,
             Betweenness, Metric, ValueMetric>& info) const {
-            Distance df = info.value_metric(info.f_right, info.f_left);
-            if (df <= threshold_) {
+            // Если на уровне нет вариации (функция постоянна) — сразу возвращаем середину
+            if (numerator(info.max_oscillation) == 0) {
                 return (left + right) / Addr{ 2 };
             }
-            else {
-                double alpha = static_cast<double>(df) / static_cast<double>(info.max_oscillation);
-                if (alpha < epsilon_) alpha = epsilon_;
-                if (alpha > 1.0 - epsilon_) alpha = 1.0 - epsilon_;
-                return left + Addr(alpha) * (right - left);
+
+            Distance df = info.value_metric(info.f_right, info.f_left);
+            if (df <= Distance(threshold_)) {
+                return (left + right) / Addr{ 2 };
             }
+
+            Distance alpha = df / info.max_oscillation;
+            if (alpha < Distance(epsilon_)) alpha = Distance(epsilon_);
+            if (alpha > Distance(1) - Distance(epsilon_)) alpha = Distance(1) - Distance(epsilon_);
+            Addr mid = left + alpha * (right - left);
+
+            // Проверка строгой междусловности
+            if (!(left < mid && mid < right)) {
+                // В отладочном режиме выводим информацию
+#ifndef NDEBUG
+                std::cerr << "WARNING: AdaptiveOperator produced non-between point: left=" << left
+                    << ", mid=" << mid << ", right=" << right
+                    << ", alpha=" << alpha << ", epsilon=" << epsilon_
+                    << ", df=" << df << ", max_osc=" << info.max_oscillation << std::endl;
+#endif
+                // Возвращаем середину как запасной вариант
+                return (left + right) / Addr{ 2 };
+            }
+            return mid;
         }
 
     private:
-        double threshold_;
-        double epsilon_;
+        Rational threshold_;
+        Rational epsilon_;
     };
 
     // -----------------------------------------------------------------------------

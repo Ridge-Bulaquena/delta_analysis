@@ -49,6 +49,6 @@ TEST(Sqrt2Test, DyadicApproximation) {
         // Длина интервала на предыдущем уровне была 2/2^(i-1) = 2/2^(i-1) = 4/2^i? 
         // На самом деле, после i шагов длина интервала = 2/2^i, поэтому разница между последовательными левыми границами = 2/2^i = 2/(1<<i)
         double expected = 2.0 / (1 << i);
-        EXPECT_LE(boost::rational_cast<double>(diff), expected);
+        EXPECT_LE(diff.convert_to<double>(), expected);
     }
 }

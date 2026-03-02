@@ -49,5 +49,5 @@ TEST(IntegralTest, DyadicX) {
     Rational exact = 1_r/2_r;
     Rational error = left_sums.back() - exact;
     // Ошибка на уровне 9 (после 10 шагов) ~ 1/1024 ≈ 0.001
-    EXPECT_NEAR(boost::rational_cast<double>(error), 0.0, 2e-3);
+    EXPECT_NEAR(error.convert_to<double>(), 0.0, 2e-3);
 }

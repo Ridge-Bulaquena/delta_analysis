@@ -26,7 +26,7 @@ std::string grid_to_string(const Grid& g) {
     oss << "[";
     for (size_t i = 0; i < g.size(); ++i) {
         if (i > 0) oss << ", ";
-        oss << boost::rational_cast<double>(g[i]);
+        oss << g[i].convert_to<double>();
     }
     oss << "]";
     return oss.str();

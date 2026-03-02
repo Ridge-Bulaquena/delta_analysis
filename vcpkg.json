@@ -4,8 +4,9 @@
   "dependencies": [
     "eigen3",
     "fmt",
-    "boost-rational",
+    "boost-core",
+    "boost-multiprecision",
     "gtest",
-    "boost-throw-exception"
+    "benchmark"
   ]
 }
