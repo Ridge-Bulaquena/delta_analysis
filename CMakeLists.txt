@@ -10,7 +10,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 project ("delta_analysis")
-find_package(Boost REQUIRED) 
+find_package(Boost REQUIRED)
+find_package(Eigen3 REQUIRED)
 #make libraries
 add_library(delta_core INTERFACE)
 
@@ -18,7 +19,7 @@ add_library(delta_core INTERFACE)
 target_include_directories(delta_core INTERFACE 
     "${CMAKE_SOURCE_DIR}/include"
 )
-target_link_libraries(delta_core INTERFACE Boost::boost)
+target_link_libraries(delta_core INTERFACE Boost::boost Eigen3::Eigen)
 
 if(MSVC)
     target_compile_options(delta_core INTERFACE /EHsc)
@@ -28,4 +29,5 @@ endif()
 # Включите подпроекты.
 add_subdirectory ("src")
 add_subdirectory ("tests/basic")
+add_subdirectory ("tests/numerical")
 add_subdirectory("benchmarks")
