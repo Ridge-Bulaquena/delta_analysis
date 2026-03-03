@@ -1,4 +1,4 @@
-// include/delta/core/delta_path.h (исправленная версия)
+// include/delta/core/delta_path.h
 #pragma once
 
 #include <vector>
@@ -9,9 +9,8 @@
 #include "list_grid.h"
 #include "interval_info.h"
 #include "value_metric.h"
-#include "delta_strategy.h"   // добавлено
+#include "delta_strategy.h"
 
-// Макрос для включения/отключения кеширования значений
 #ifndef DELTA_USE_CACHING
 #define DELTA_USE_CACHING 1
 #endif
@@ -25,7 +24,7 @@ namespace delta {
         public:
             using Strategy = DeltaStrategy<Addr, Value, Distance, Betweenness, Metric, ValueMetric>;
             using StrategyPtr = std::shared_ptr<const Strategy>;
-            using GridType = ListGrid<Addr, Compare>;   // пока только ListGrid
+            using GridType = ListGrid<Addr, Compare>;
             using Func = std::function<Value(const Addr&)>;
 
             DeltaPath(GridType initial_grid, StrategyPtr strategy,
@@ -35,7 +34,9 @@ namespace delta {
                 , betweenness_(std::move(betweenness))
                 , metric_(std::move(metric))
                 , value_metric_(std::move(value_metric))
-                , level_(0) {
+                , level_(0)
+                , use_buffer_a_(true)
+            {
             }
 
             void advance(const Func& func) {
@@ -43,28 +44,28 @@ namespace delta {
                 const auto& grid = current_grid_;
                 const std::size_t n = grid.size();
 
-                // -----------------------------------------------------------------
-                // 1. Кешируем значения (если включено)
-                // -----------------------------------------------------------------
 #if DELTA_USE_CACHING
                 std::vector<Value> values(n);
                 for (std::size_t i = 0; i < n; ++i) {
                     values[i] = func(grid[i]);
                 }
-#else
-            // без кеширования – придётся вызывать func при каждом обращении
 #endif
 
-            // -----------------------------------------------------------------
-            // 2. Вычисляем максимальную осцилляцию (с OpenMP, если доступно)
-            // -----------------------------------------------------------------
                 Distance max_osc = Distance{ 0 };
 
 #if defined(_OPENMP) && DELTA_USE_CACHING
-#pragma omp parallel for reduction(max:max_osc)
-                for (std::int64_t i = 0; i < static_cast<std::int64_t>(n - 1); ++i) {
-                    Distance d = value_metric_(values[i + 1], values[i]);
-                    if (d > max_osc) max_osc = d;
+#pragma omp parallel
+                {
+                    Distance local_max = Distance{ 0 };
+#pragma omp for
+                    for (std::int64_t i = 0; i < static_cast<std::int64_t>(n - 1); ++i) {
+                        Distance d = value_metric_(values[i + 1], values[i]);
+                        if (d > local_max) local_max = d;
+                    }
+#pragma omp critical
+                    {
+                        if (local_max > max_osc) max_osc = local_max;
+                    }
                 }
 #elif DELTA_USE_CACHING
                 for (std::size_t i = 0; i + 1 < n; ++i) {
@@ -80,10 +81,9 @@ namespace delta {
                 }
 #endif
 
-                // -----------------------------------------------------------------
-                // 3. Строим следующую сетку вручную (всегда ListGrid)
-                // -----------------------------------------------------------------
-                std::vector<Addr> next;
+                // Double buffering
+                std::vector<Addr>& next = use_buffer_a_ ? buffer_a_ : buffer_b_;
+                next.clear();
                 next.reserve(2 * n - 1);
 
                 for (std::size_t i = 0; i + 1 < n; ++i) {
@@ -105,27 +105,17 @@ namespace delta {
                               betweenness_, metric_, value_metric_ };
                     Addr mid = op(left, right, info);
 
-                    // В отладочном режиме можно проверить betweenness
-#ifndef NDEBUG
-                // междустрочное условие должно выполняться
-                // assert(betweenness_(left, mid, right));
-#endif
-
                     next.push_back(std::move(mid));
                 }
                 next.push_back(grid[n - 1]);
 
                 current_grid_ = GridType(std::move(next), grid.comparator());
+                use_buffer_a_ = !use_buffer_a_;
                 ++level_;
             }
 
-            const GridType& current_grid() const noexcept {
-                return current_grid_;
-            }
-
-            std::size_t level() const noexcept {
-                return level_;
-            }
+            const GridType& current_grid() const noexcept { return current_grid_; }
+            std::size_t level() const noexcept { return level_; }
 
             const GridType& get_grid(std::size_t lvl) const {
                 if (lvl == level_) return current_grid_;
@@ -148,6 +138,11 @@ namespace delta {
             Metric metric_;
             ValueMetric value_metric_;
             std::size_t level_;
+
+            // Буферы для double buffering
+            mutable std::vector<Addr> buffer_a_;
+            mutable std::vector<Addr> buffer_b_;
+            bool use_buffer_a_;
     };
 
 } // namespace delta

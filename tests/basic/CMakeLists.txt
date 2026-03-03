@@ -1,10 +1,8 @@
 # tests/basic/CMakeLists.txt
-enable_testing()
-find_package(fmt CONFIG REQUIRED)
-find_package(Boost REQUIRED)
-find_package(GTest CONFIG REQUIRED)
 
+# 1. Создаем исполняемый файл
 add_executable(delta_tests
+    main_tests_basic.cpp
     test_grid.cpp
     test_grid_concepts.cpp
     test_operational_function.cpp
@@ -14,19 +12,24 @@ add_executable(delta_tests
     test_non_commutativity.cpp
     test_differentiability.cpp
     test_adaptive_operator.cpp
-  #test_adaptive_stress.cpp
-    test_adaptive_path.cpp)
+    test_adaptive_path.cpp
+    test_adaptive_stress.cpp
+)
 
-set_target_properties(delta_tests PROPERTIES CXX_STANDARD 20)
-
+# 2. Привязываем всё необходимое
+# delta_core уже содержит: OpenMP, Eigen, Boost, fmt и пути к include
 target_link_libraries(delta_tests
     PRIVATE
     delta_core
-    GTest::gtest
-    GTest::gtest_main
- #   Boost::boost   Этого достаточно для всех header-only библиотек Boost
+    gtest_main   # gtest_main сам подтянет gtest, если используешь стандартный Google Test Main
 )
 
-target_include_directories(delta_tests PRIVATE ${CMAKE_SOURCE_DIR}/include)
+# 3. Интеграция с Test Explorer в Visual Studio
 include(GoogleTest)
-gtest_discover_tests(delta_tests)
+
+# Прокидываем путь к DLL через PATH, иначе gtest_discover_tests не сможет запустить бинарник
+# для поиска тестов и всё свалится с ошибкой в CMake
+gtest_discover_tests(delta_tests
+    PROPERTIES 
+    ENVIRONMENT "PATH=${MSVC_BIN_DIR};$ENV{PATH}"
+)
