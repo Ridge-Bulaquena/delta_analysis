@@ -1,17 +1,23 @@
 #benchmarks/CMakeLists.txt
 find_package(benchmark REQUIRED)
 
-add_executable(advance_benchmark advance_benchmark.cpp)
-target_link_libraries(advance_benchmark PRIVATE benchmark::benchmark delta_core)
-target_include_directories(advance_benchmark PRIVATE ${PROJECT_SOURCE_DIR}/include)
-target_compile_options(advance_benchmark PRIVATE /Zc:__cplusplus)
+add_executable(benchmark_advance benchmark_advance.cpp)
+target_link_libraries(benchmark_advance PRIVATE benchmark::benchmark delta_core)
+target_include_directories(benchmark_advance PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_compile_options(benchmark_advance PRIVATE /Zc:__cplusplus)
 
-add_executable(opfunc_benchmark operational_function_benchmark.cpp)
-target_link_libraries(opfunc_benchmark PRIVATE benchmark::benchmark delta_core)
-target_include_directories(opfunc_benchmark PRIVATE ${PROJECT_SOURCE_DIR}/include)
-target_compile_options(opfunc_benchmark PRIVATE /Zc:__cplusplus)
+add_executable(benchmark_operational_function benchmark_operational_function.cpp)
+target_link_libraries(benchmark_operational_function PRIVATE benchmark::benchmark delta_core)
+target_include_directories(benchmark_operational_function PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_compile_options(benchmark_operational_function PRIVATE /Zc:__cplusplus)
 
-add_executable(riemann_sum_benchmark riemann_sum_benchmark.cpp)
-target_link_libraries(riemann_sum_benchmark PRIVATE benchmark::benchmark delta_core)
-target_include_directories(riemann_sum_benchmark PRIVATE ${PROJECT_SOURCE_DIR}/include)
-target_compile_options(riemann_sum_benchmark PRIVATE /Zc:__cplusplus)
+add_executable(benchmark_riemann_sum benchmark_riemann_sum.cpp)
+target_link_libraries(benchmark_riemann_sum PRIVATE benchmark::benchmark delta_core)
+target_include_directories(benchmark_riemann_sum PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_compile_options(benchmark_riemann_sum PRIVATE /Zc:__cplusplus)
+
+
+add_executable(benchmark_adaptive_path benchmark_adaptive_path.cpp)
+target_link_libraries(benchmark_adaptive_path PRIVATE benchmark::benchmark delta_core)
+target_include_directories(benchmark_adaptive_path PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_compile_options(benchmark_adaptive_path PRIVATE /Zc:__cplusplus)

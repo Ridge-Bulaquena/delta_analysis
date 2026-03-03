@@ -1,4 +1,4 @@
-// benchmarks/operational_function_benchmark.cpp
+// benchmarks/benchmark_operational_function.cpp
 #include <benchmark/benchmark.h>
 #include <vector>
 #include "delta/core/rational.h"

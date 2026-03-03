@@ -1,4 +1,4 @@
-// benchmarks/advance_benchmark.cpp
+// benchmarks/benchmark_advance.cpp
 #include <benchmark/benchmark.h>
 #include "delta/core/rational.h"
 #include "delta/core/delta_path.h"
@@ -48,7 +48,7 @@ static void BM_AdvanceDyadic(benchmark::State& state) {
         }
     }
 }
-//BENCHMARK(BM_AdvanceDyadic)->Arg(5)->Arg(10)->Arg(15);
+BENCHMARK(BM_AdvanceDyadic)->Arg(5)->Arg(10)->Arg(15);
 
 static void BM_AdvanceAdaptive(benchmark::State& state) {
     ListGrid<Addr, Compare> grid0({ 0_r, 1_r });

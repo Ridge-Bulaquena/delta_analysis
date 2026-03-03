@@ -1,4 +1,4 @@
-// benchmarks/riemann_sum_benchmark.cpp
+// benchmarks/benchmark_riemann_sum.cpp
 #include <benchmark/benchmark.h>
 #include "delta/core/rational.h"
 #include "delta/core/delta_path.h"

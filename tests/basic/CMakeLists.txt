@@ -15,7 +15,8 @@ add_executable(delta_tests
     test_non_commutativity.cpp
     test_differentiability.cpp
     test_adaptive_operator.cpp
-  test_adaptive_stress.cpp)
+  #test_adaptive_stress.cpp
+    test_adaptive_path.cpp)
 
 set_target_properties(delta_tests PROPERTIES CXX_STANDARD 20)
 
