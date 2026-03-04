@@ -1,4 +1,3 @@
-// tests/basic/test_integral.cpp
 #include <gtest/gtest.h>
 #include "delta/core/rational.h"
 #include "delta/core/regulative_idea.h"
@@ -6,7 +5,9 @@
 #include "delta/core/delta_path.h"
 #include "delta/core/operational_function.h"
 #include "delta/core/list_grid.h"
-#include <sstream> 
+#include "delta/core/delta_strategy.h"
+#include "delta/core/delta_operator.h"
+
 using namespace delta;
 
 using Addr = Rational;
@@ -31,23 +32,21 @@ Rational left_riemann_sum(const Path& path, const typename Path::Func& func) {
 TEST(IntegralTest, DyadicX) {
     auto func_val = [](const Addr& x) { return x; };
 
-    ListGrid<Addr, Compare> grid0({0_r, 1_r});
-    auto mid_op = [](const Addr& x, const Addr& y, const auto&) { return (x + y) / 2_r; };
-    using OpFunc = decltype(mid_op);
-    using Strategy = StaticStrategy<Addr, Val, Dist, Between, AddrMetric, ValMetric>;
-    auto strategy = std::make_shared<Strategy>(OpFunc(mid_op));
+    ListGrid<Addr, Compare> grid0({ 0_r, 1_r });
 
-    DeltaPath<Addr, Val, Dist, Between, AddrMetric, ValMetric, Compare>
+    MidpointOperator mid_op;
+    using OpType = MidpointOperator;
+    StaticStrategy<OpType> strategy(mid_op);
+
+    DeltaPath<Addr, Val, Dist, Between, AddrMetric, ValMetric, decltype(strategy), Compare>
         path(grid0, strategy, Between{}, AddrMetric{}, ValMetric{});
 
     std::vector<Rational> left_sums;
-    // Увеличиваем число шагов до 10
     for (int i = 0; i < 10; ++i) {
         left_sums.push_back(left_riemann_sum(path, func_val));
         path.advance(func_val);
     }
-    Rational exact = 1_r/2_r;
+    Rational exact = 1_r / 2_r;
     Rational error = left_sums.back() - exact;
-    // Ошибка на уровне 9 (после 10 шагов) ~ 1/1024 ≈ 0.001
     EXPECT_NEAR(error.convert_to<double>(), 0.0, 2e-3);
 }

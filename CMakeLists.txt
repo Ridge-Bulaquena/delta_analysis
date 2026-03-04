@@ -30,6 +30,7 @@ else()
     find_package(OpenMP REQUIRED)
 endif()
 
+
 # 3. Внешние зависимости (Централизованно)
 find_package(Boost REQUIRED)
 find_package(Eigen3 REQUIRED)
@@ -61,6 +62,12 @@ target_link_libraries(delta_core INTERFACE
 if(MSVC)
     target_compile_options(delta_core INTERFACE /EHsc /Zc:__cplusplus)
     target_compile_definitions(delta_core INTERFACE EIGEN_HAS_OPENMP)
+endif()
+
+# Configuring memory use on delta/core/rational.h - static vs dynamic.
+option(DELTA_USE_STATIC_RATIONAL "Use static rational with fixed bit width" ON)
+if(DELTA_USE_STATIC_RATIONAL)
+    target_compile_definitions(delta_core INTERFACE DELTA_RATIONAL_BITS=256)
 endif()
 
 # 6. Подключаем поддиректории

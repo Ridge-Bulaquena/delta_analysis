@@ -1,4 +1,3 @@
-// tests/basic/test_delta_path.cpp
 #include <gtest/gtest.h>
 #include "delta/core/rational.h"
 #include "delta/core/regulative_idea.h"
@@ -6,7 +5,9 @@
 #include "delta/core/delta_path.h"
 #include "delta/core/operational_function.h"
 #include "delta/core/list_grid.h"
-#include <sstream> 
+#include "delta/core/delta_strategy.h"
+#include "delta/core/delta_operator.h"
+
 using namespace delta;
 
 using Addr = Rational;
@@ -18,17 +19,13 @@ using ValMetric = EuclideanValueMetric;
 using Compare = std::less<Addr>;
 
 TEST(DeltaPathTest, BasicDyadicPath) {
-   ListGrid<Addr, Compare> grid0({ 0_r, 1_r });
+    ListGrid<Addr, Compare> grid0({ 0_r, 1_r });
 
-    auto mid_op = [](const Addr& x, const Addr& y,
-        const IntervalInfo<Addr, Val, Dist, Between, AddrMetric, ValMetric>&) {
-            return (x + y) / 2_r;
-        };
-    using OpFunc = decltype(mid_op);
-    using Strategy = StaticStrategy<Addr, Val, Dist, Between, AddrMetric, ValMetric>;
-    auto strategy = std::make_shared<Strategy>(OpFunc(mid_op));
+    MidpointOperator mid_op;
+    using OpType = MidpointOperator;
+    StaticStrategy<OpType> strategy(mid_op);
 
-    DeltaPath<Addr, Val, Dist, Between, AddrMetric, ValMetric, Compare>
+    DeltaPath<Addr, Val, Dist, Between, AddrMetric, ValMetric, decltype(strategy), Compare>
         path(grid0, strategy, Between{}, AddrMetric{}, ValMetric{});
 
     auto func = [](const Addr& x) { return x; };
