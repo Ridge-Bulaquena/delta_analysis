@@ -1,56 +1,37 @@
 #include <gtest/gtest.h>
-#include "delta/core/delta_path.h"
-#include "delta/core/delta_strategy.h"
-#include "delta/core/delta_operator.h"
-#include "delta/core/rational.h"
-#include "delta/core/value_metric.h"
-#include "delta/core/regulative_idea.h"
-#include "delta/core/list_grid.h"
+#include "test_fixtures.h"
 
-using namespace delta;
+using namespace delta::testing;
 
-using Addr = Rational;
-using Val = Rational;
-using Dist = Rational;
-using Between = LessBetweenness;
-using AddrMetric = EuclideanMetric;
-using ValMetric = EuclideanValueMetric;
-using Compare = std::less<Addr>;
+class DifferentiabilityTest : public DeltaTest {};
 
-TEST(DifferentiabilityTest, QuadraticAtMidpoint) {
-    auto func_val = [](const Addr& x) -> Val { return x * x; };
-
+TEST_F(DifferentiabilityTest, QuadraticAtMidpoint) {
     ListGrid<Addr, Compare> grid0({ 0_r, 1_r });
+    auto path = make_midpoint_path(grid0);
 
-    MidpointOperator mid_op;
-    using OpType = MidpointOperator;
-    StaticStrategy<OpType> strategy(mid_op);
-
-    DeltaPath<Addr, Val, Dist, Between, AddrMetric, ValMetric, decltype(strategy), Compare>
-        path(grid0, strategy, Between{}, AddrMetric{}, ValMetric{});
+    auto func = [](const Addr& x) { return x * x; };
 
     for (int i = 0; i < 5; ++i) {
-        path.advance(func_val);
+        path.advance(func);
     }
+
+    // Проверяем, что сетка остаётся корректной
+    EXPECT_TRUE(is_sorted(path.current_grid()));
+    EXPECT_TRUE(bounds_match(path.current_grid(), 0_r, 1_r));
     EXPECT_GT(path.level(), 0);
 }
 
-TEST(DifferentiabilityTest, AbsoluteValueNotDifferentiable) {
-    auto func_val = [](const Addr& x) -> Val {
-        return x >= 0_r ? x : -x;
-        };
-
+TEST_F(DifferentiabilityTest, AbsoluteValueNotDifferentiable) {
     ListGrid<Addr, Compare> grid0({ -1_r, 0_r, 1_r });
+    auto path = make_midpoint_path(grid0);
 
-    MidpointOperator mid_op;
-    using OpType = MidpointOperator;
-    StaticStrategy<OpType> strategy(mid_op);
-
-    DeltaPath<Addr, Val, Dist, Between, AddrMetric, ValMetric, decltype(strategy), Compare>
-        path(grid0, strategy, Between{}, AddrMetric{}, ValMetric{});
+    auto func = [](const Addr& x) { return x >= 0_r ? x : -x; };
 
     for (int i = 0; i < 5; ++i) {
-        path.advance(func_val);
+        path.advance(func);
     }
+
+    EXPECT_TRUE(is_sorted(path.current_grid()));
+    EXPECT_TRUE(bounds_match(path.current_grid(), -1_r, 1_r));
     EXPECT_GT(path.level(), 0);
 }

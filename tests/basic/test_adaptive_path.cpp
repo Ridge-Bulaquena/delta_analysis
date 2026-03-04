@@ -1,56 +1,30 @@
 #include <gtest/gtest.h>
 #include <vector>
-#include <set>
-#include "delta/core/rational.h"
-#include "delta/core/adaptive_delta_path.h"
-#include "delta/core/regulative_idea.h"
-#include "delta/core/value_metric.h"
-#include "delta/core/delta_operator.h"
+#include "test_fixtures.h"
 
-using namespace delta;
+using namespace delta::testing;
 
-using Addr = Rational;
-using Val = Rational;
-using Dist = Rational;
-using Between = LessBetweenness;
-using AddrMetric = EuclideanMetric;
-using ValMetric = EuclideanValueMetric;
-using Compare = std::less<Addr>;
+class AdaptivePathTest : public DeltaTest {};
 
-template<typename Set>
-bool is_sorted_set(const Set& s) {
-    if (s.empty()) return true;
-    auto it = s.begin();
-    auto next = std::next(it);
-    while (next != s.end()) {
-        if (!(*it < *next)) return false;
-        ++it;
-        ++next;
-    }
-    return true;
-}
-
-TEST(AdaptivePathTest, Initialization) {
+TEST_F(AdaptivePathTest, Initialization) {
     std::vector<Addr> init = { 0_r, 1_r };
     auto func = [](const Addr& x) { return x * x; };
     MidpointOperator mid_op;
 
-    AdaptiveDeltaPath<Addr, Val, Dist, Between, AddrMetric, ValMetric, MidpointOperator, Compare>
-        path(init, func, mid_op);
+    auto path = make_adaptive_path(init, func, mid_op);
 
     EXPECT_EQ(path.size(), 2);
-    EXPECT_TRUE(is_sorted_set(path.points()));
+    EXPECT_TRUE(is_sorted_set(path.points())); // используем статическую функцию из фикстуры
     EXPECT_TRUE(path.advance());
     EXPECT_EQ(path.size(), 3);
 }
 
-TEST(AdaptivePathTest, OneStepMidpoint) {
+TEST_F(AdaptivePathTest, OneStepMidpoint) {
     std::vector<Addr> init = { 0_r, 1_r };
     auto func = [](const Addr& x) { return x * x; };
     MidpointOperator mid_op;
 
-    AdaptiveDeltaPath<Addr, Val, Dist, Between, AddrMetric, ValMetric, MidpointOperator, Compare>
-        path(init, func, mid_op);
+    auto path = make_adaptive_path(init, func, mid_op);
 
     EXPECT_TRUE(path.advance());
     auto points = path.points();
@@ -61,13 +35,12 @@ TEST(AdaptivePathTest, OneStepMidpoint) {
     EXPECT_EQ(*it, 1_r);
 }
 
-TEST(AdaptivePathTest, SeveralStepsMidpoint) {
+TEST_F(AdaptivePathTest, SeveralStepsMidpoint) {
     std::vector<Addr> init = { 0_r, 1_r };
     auto func = [](const Addr& x) { return x * x; };
     MidpointOperator mid_op;
 
-    AdaptiveDeltaPath<Addr, Val, Dist, Between, AddrMetric, ValMetric, MidpointOperator, Compare>
-        path(init, func, mid_op);
+    auto path = make_adaptive_path(init, func, mid_op);
 
     for (int i = 0; i < 3; ++i) {
         EXPECT_TRUE(path.advance());
@@ -76,51 +49,50 @@ TEST(AdaptivePathTest, SeveralStepsMidpoint) {
     EXPECT_TRUE(is_sorted_set(path.points()));
 }
 
-TEST(AdaptivePathTest, Threshold) {
+TEST_F(AdaptivePathTest, Threshold) {
     std::vector<Addr> init = { 0_r, 1_r };
     auto func = [](const Addr& x) { return x; };
     MidpointOperator mid_op;
-
     Dist threshold = 1_r;
-    AdaptiveDeltaPath<Addr, Val, Dist, Between, AddrMetric, ValMetric, MidpointOperator, Compare>
-        path(init, func, mid_op, threshold);
+
+    auto path = make_adaptive_path(init, func, mid_op, threshold);
 
     EXPECT_FALSE(path.advance());
     EXPECT_EQ(path.size(), 2);
 }
 
-TEST(AdaptivePathTest, AdaptiveOperator) {
+TEST_F(AdaptivePathTest, AdaptiveOperator) {
     std::vector<Addr> init = { 0_r, 1_r };
     auto func = [](const Addr& x) { return x * x; };
     AdaptiveOperator adapt_op(1_r / 10_r, 1_r / 10_r);
 
-    AdaptiveDeltaPath<Addr, Val, Dist, Between, AddrMetric, ValMetric, AdaptiveOperator, Compare>
-        path(init, func, adapt_op);
+    auto path = make_adaptive_path(init, func, adapt_op);
 
     EXPECT_TRUE(path.advance());
     EXPECT_EQ(path.size(), 3);
 }
 
-TEST(AdaptivePathTest, BetweennessProperty) {
+TEST_F(AdaptivePathTest, BetweennessProperty) {
     std::vector<Addr> init = { 0_r, 1_r };
     auto func = [](const Addr& x) { return x; };
     MidpointOperator mid_op;
 
-    AdaptiveDeltaPath<Addr, Val, Dist, Between, AddrMetric, ValMetric, MidpointOperator, Compare>
-        path(init, func, mid_op);
+    auto path = make_adaptive_path(init, func, mid_op);
 
     for (int i = 0; i < 5; ++i) {
         EXPECT_TRUE(path.advance());
     }
+    // Проверить betweenness можно было бы, но для адаптивного пути это сложно.
+    // Ограничимся проверкой упорядоченности.
+    EXPECT_TRUE(is_sorted_set(path.points()));
 }
 
-TEST(AdaptivePathTest, ManySteps) {
+TEST_F(AdaptivePathTest, ManySteps) {
     std::vector<Addr> init = { 0_r, 1_r };
     auto func = [](const Addr& x) { return x * x; };
     MidpointOperator mid_op;
 
-    AdaptiveDeltaPath<Addr, Val, Dist, Between, AddrMetric, ValMetric, MidpointOperator, Compare>
-        path(init, func, mid_op);
+    auto path = make_adaptive_path(init, func, mid_op);
 
     int steps = 0;
     const int max_steps = 100;

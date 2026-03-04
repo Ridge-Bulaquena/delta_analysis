@@ -10,17 +10,11 @@
 #include "list_grid.h"
 #include "uniform_grid.h"
 #include "grid_concept.h"
+#include "grid_refine.h"
 
 namespace delta {
 
     namespace detail {
-        // Вспомогательный трейт для определения равномерности сетки
-        template<typename Grid>
-        struct is_uniform_grid : std::false_type {};
-
-        template<typename T, typename C>
-        struct is_uniform_grid<UniformGrid<T, C>> : std::true_type {};
-
         // Получение индекса в равномерной сетке по адресу
         template<typename Addr, typename Grid>
         std::size_t uniform_index(const Addr& addr, const Grid& grid) {

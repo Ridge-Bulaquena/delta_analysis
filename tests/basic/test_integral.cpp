@@ -1,22 +1,10 @@
 #include <gtest/gtest.h>
-#include "delta/core/rational.h"
-#include "delta/core/regulative_idea.h"
-#include "delta/core/value_metric.h"
-#include "delta/core/delta_path.h"
-#include "delta/core/operational_function.h"
-#include "delta/core/list_grid.h"
-#include "delta/core/delta_strategy.h"
-#include "delta/core/delta_operator.h"
+#include <vector>
+#include "test_fixtures.h"
 
-using namespace delta;
+using namespace delta::testing;
 
-using Addr = Rational;
-using Val = Rational;
-using Dist = Rational;
-using Between = LessBetweenness;
-using AddrMetric = EuclideanMetric;
-using ValMetric = EuclideanValueMetric;
-using Compare = std::less<Addr>;
+class IntegralTest : public DeltaTest {};
 
 template<typename Path>
 Rational left_riemann_sum(const Path& path, const typename Path::Func& func) {
@@ -29,24 +17,21 @@ Rational left_riemann_sum(const Path& path, const typename Path::Func& func) {
     return sum;
 }
 
-TEST(IntegralTest, DyadicX) {
-    auto func_val = [](const Addr& x) { return x; };
-
+TEST_F(IntegralTest, DyadicX) {
     ListGrid<Addr, Compare> grid0({ 0_r, 1_r });
+    auto path = make_midpoint_path(grid0);
 
-    MidpointOperator mid_op;
-    using OpType = MidpointOperator;
-    StaticStrategy<OpType> strategy(mid_op);
+    auto func = [](const Addr& x) { return x; };
+    std::vector<Rational> sums;
 
-    DeltaPath<Addr, Val, Dist, Between, AddrMetric, ValMetric, decltype(strategy), Compare>
-        path(grid0, strategy, Between{}, AddrMetric{}, ValMetric{});
-
-    std::vector<Rational> left_sums;
     for (int i = 0; i < 10; ++i) {
-        left_sums.push_back(left_riemann_sum(path, func_val));
-        path.advance(func_val);
+        sums.push_back(left_riemann_sum(path, func));
+        path.advance(func);
     }
-    Rational exact = 1_r / 2_r;
-    Rational error = left_sums.back() - exact;
-    EXPECT_NEAR(error.convert_to<double>(), 0.0, 2e-3);
+
+    Rational expected = 1_r / 2_r;
+    Rational error = sums.back() - expected;
+    // Ошибка должна уменьшаться с каждым шагом
+    EXPECT_RATIONAL_NEAR(error, 0_r, Rational(1, 1000));
+    // Дополнительно можно проверить монотонность убывания ошибки
 }

@@ -1,38 +1,21 @@
 #include <gtest/gtest.h>
-#include "delta/core/rational.h"
-#include "delta/core/regulative_idea.h"
-#include "delta/core/value_metric.h"
-#include "delta/core/delta_path.h"
-#include "delta/core/operational_function.h"
-#include "delta/core/list_grid.h"
-#include "delta/core/delta_strategy.h"
-#include "delta/core/delta_operator.h"
+#include "test_fixtures.h"
 
-using namespace delta;
+using namespace delta::testing;
 
-using Addr = Rational;
-using Val = Rational;
-using Dist = Rational;
-using Between = LessBetweenness;
-using AddrMetric = EuclideanMetric;
-using ValMetric = EuclideanValueMetric;
-using Compare = std::less<Addr>;
+class DeltaPathTest : public DeltaTest {};
 
-TEST(DeltaPathTest, BasicDyadicPath) {
+TEST_F(DeltaPathTest, BasicDyadicPath) {
     ListGrid<Addr, Compare> grid0({ 0_r, 1_r });
-
-    MidpointOperator mid_op;
-    using OpType = MidpointOperator;
-    StaticStrategy<OpType> strategy(mid_op);
-
-    DeltaPath<Addr, Val, Dist, Between, AddrMetric, ValMetric, decltype(strategy), Compare>
-        path(grid0, strategy, Between{}, AddrMetric{}, ValMetric{});
+    auto path = make_midpoint_path(grid0);
 
     auto func = [](const Addr& x) { return x; };
 
     path.advance(func);
     EXPECT_EQ(path.level(), 1);
     auto grid1 = path.current_grid();
+    EXPECT_TRUE(is_sorted(grid1));
+    EXPECT_TRUE(bounds_match(grid1, 0_r, 1_r));
     EXPECT_EQ(grid1.size(), 3);
     EXPECT_EQ(grid1[0], 0_r);
     EXPECT_EQ(grid1[1], 1_r / 2_r);
@@ -42,6 +25,8 @@ TEST(DeltaPathTest, BasicDyadicPath) {
     path.advance(func);
     EXPECT_EQ(path.level(), 2);
     auto grid2 = path.current_grid();
+    EXPECT_TRUE(is_sorted(grid2));
+    EXPECT_TRUE(bounds_match(grid2, 0_r, 1_r));
     EXPECT_EQ(grid2.size(), 5);
     EXPECT_EQ(grid2[0], 0_r);
     EXPECT_EQ(grid2[1], 1_r / 4_r);

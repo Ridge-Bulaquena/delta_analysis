@@ -2,6 +2,7 @@
 
 # 1. Создаем исполняемый файл
 add_executable(delta_tests
+    test_fixtures.h
     main_tests_basic.cpp
     test_grid.cpp
     test_grid_concepts.cpp
@@ -15,7 +16,7 @@ add_executable(delta_tests
     test_adaptive_path.cpp
     test_adaptive_stress.cpp
 )
-
+target_include_directories(delta_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 # 2. Привязываем всё необходимое
 # delta_core уже содержит: OpenMP, Eigen, Boost, fmt и пути к include
 target_link_libraries(delta_tests
