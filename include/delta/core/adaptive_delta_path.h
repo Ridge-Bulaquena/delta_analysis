@@ -41,22 +41,23 @@ namespace delta {
                 points_.insert(p);
             }
 
-            // Вычисляем начальную максимальную осцилляцию
             update_max_oscillation();
 
-            auto it = points_.begin();
-            auto next = std::next(it);
-            while (next != points_.end()) {
-                Addr left = *it;
-                Addr right = *next;
-                Value f_left = func_(left);
-                Value f_right = func_(right);
-                Distance prio = value_metric_(f_right, f_left);
-                if (prio > threshold_) {
-                    queue_.push(Interval{ left, right, f_left, f_right, prio });
+            if (!points_.empty()) {
+                auto it = points_.begin();
+                auto next = std::next(it);
+                while (next != points_.end()) {
+                    Addr left = *it;
+                    Addr right = *next;
+                    Value f_left = func_(left);
+                    Value f_right = func_(right);
+                    Distance prio = value_metric_(f_right, f_left);
+                    if (prio > threshold_) {
+                        queue_.push(Interval{ left, right, f_left, f_right, prio });
+                    }
+                    ++it;
+                    ++next;
                 }
-                ++it;
-                ++next;
             }
         }
 
@@ -101,6 +102,7 @@ namespace delta {
         void update_max_oscillation() {
             max_oscillation_ = Distance{ 0 };
             auto it = points_.begin();
+            if (it == points_.end()) return;  // пустое множество
             auto next = std::next(it);
             while (next != points_.end()) {
                 Distance d = value_metric_(func_(*next), func_(*it));

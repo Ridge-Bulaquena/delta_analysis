@@ -38,9 +38,13 @@ namespace delta {
         }
 
         void advance(const Func& func) {
-            const auto& op = strategy_.get_operator(level_);
             const auto& grid = current_grid_;
             const std::size_t n = grid.size();
+            if (n == 0) {
+                ++level_;
+                return;
+            }
+            const auto& op = strategy_.get_operator(level_);
 
 #if DELTA_USE_CACHING
             std::vector<Value> values(n);
@@ -101,7 +105,7 @@ namespace delta {
                     info{ left, right, level_, vleft, vright, max_osc,
                           betweenness_, metric_, value_metric_ };
                 Addr mid = op(left, right, info);
-
+               
                 next.push_back(std::move(mid));
             }
             next.push_back(grid[n - 1]);

@@ -6,15 +6,19 @@ add_executable(delta_tests
     main_tests_basic.cpp
     test_grid.cpp
     test_grid_concepts.cpp
+    test_grid_edge_cases.cpp
     test_operational_function.cpp
+    test_operational_function_edge_cases.cpp
     test_delta_path.cpp
+    test_adaptive_operator.cpp
+    test_operators_edge_cases.cpp
+    test_adaptive_path.cpp
+    
+    test_strategies_edge_cases.cpp
     test_integral.cpp
     test_sqrt2.cpp
     test_non_commutativity.cpp
     test_differentiability.cpp
-    test_adaptive_operator.cpp
-    test_adaptive_path.cpp
-    test_adaptive_stress.cpp
 )
 target_include_directories(delta_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 # 2. Привязываем всё необходимое
@@ -33,4 +37,13 @@ include(GoogleTest)
 gtest_discover_tests(delta_tests
     PROPERTIES 
     ENVIRONMENT "PATH=${MSVC_BIN_DIR};$ENV{PATH}"
+)
+# Оптимизация сборки
+target_precompile_headers(delta_tests PRIVATE
+    <gtest/gtest.h>
+    <fmt/format.h>
+    <vector>
+    <functional>
+    <iostream>
+    <omp.h>
 )

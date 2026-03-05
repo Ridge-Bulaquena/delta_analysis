@@ -6,11 +6,12 @@
 int main(int argc, char** argv) {
     // ПРИНУДИТЕЛЬНАЯ инициализация OpenMP до запуска тестов
     // Это "прогревает" рантайм и предотвращает Access Violation
-    omp_set_num_threads(1);
-
-    std::cout << "[OpenMP] Initialized with LLVM backend. Threads: "
-        << omp_get_max_threads() << std::endl;
-
+    // "Прогревочный" вызов: заставляем OMP создать пул потоков прямо сейчас
+#pragma omp parallel
+    {
+#pragma omp master
+        std::cout << "[OpenMP] Warmup. Total threads: " << omp_get_num_threads() << std::endl;
+    }
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

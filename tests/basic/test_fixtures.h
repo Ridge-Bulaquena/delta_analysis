@@ -25,6 +25,7 @@ namespace delta::testing {
     using AddrMetric = EuclideanMetric;
     using ValMetric = EuclideanValueMetric;
     using Compare = std::less<Addr>;
+    using delta::operator""_r;
 
     // Базовый класс фикстуры для всех тестов
     class DeltaTest : public ::testing::Test {
@@ -63,6 +64,14 @@ namespace delta::testing {
             Rational diff = a - b;
             if (diff < 0) diff = -diff;
             return diff <= eps;
+        }
+        template<typename ValType = Val>
+        auto make_info(const Addr& left, const Addr& right,
+            const ValType& f_left, const ValType& f_right,
+            const Dist& max_osc, std::size_t level = 0) const {
+            return IntervalInfo<Addr, ValType, Dist, Between, AddrMetric, ValMetric>(
+                left, right, level, f_left, f_right, max_osc,
+                Between{}, AddrMetric{}, ValMetric{});
         }
     };
 

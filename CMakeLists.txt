@@ -65,7 +65,7 @@ if(MSVC)
 endif()
 
 # Configuring memory use on delta/core/rational.h - static vs dynamic.
-option(DELTA_USE_STATIC_RATIONAL "Use static rational with fixed bit width" ON)
+option(DELTA_USE_STATIC_RATIONAL "Use static rational with fixed bit width" OFF)
 if(DELTA_USE_STATIC_RATIONAL)
     target_compile_definitions(delta_core INTERFACE DELTA_RATIONAL_BITS=256)
 endif()
