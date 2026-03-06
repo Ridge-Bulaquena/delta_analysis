@@ -15,6 +15,7 @@
 #include "delta/core/delta_path.h"
 #include "delta/core/adaptive_delta_path.h"
 #include "delta/core/operational_function.h"
+#include "delta/core/completion.h"
 
 namespace delta::testing {
     using namespace delta;
@@ -116,7 +117,12 @@ namespace delta::testing {
         return AdaptiveDeltaPath<Addr, Val, Dist, Between, AddrMetric, ValMetric, std::decay_t<Op>, Compare>(
             init, func, std::forward<Op>(op), threshold, Between{}, AddrMetric{}, ValMetric{});
     }
-
+    // Вспомогательная функция: 2^n для небольших n
+    static inline Rational pow2(std::size_t n) {
+        Rational result = 1;
+        for (std::size_t i = 0; i < n; ++i) result *= 2;
+        return result;
+    }
     // -------------------------------------------------------------------------
     // Макрос для приближённого сравнения
     // -------------------------------------------------------------------------

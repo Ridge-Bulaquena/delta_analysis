@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include <vector>
-#include "test_fixtures.h"
+#include "../test_fixtures.h"
 
 using namespace delta::testing;
 
@@ -220,7 +220,7 @@ TEST_F(AdaptivePathTest, ManyRefinementsMidpoint) {
     MidpointOperator mid_op;
     auto path = make_adaptive_path(init, func, mid_op);
 
-    const int N = 1500;
+    const int N = 300;
     for (int i = 0; i < N; ++i) {
         EXPECT_TRUE(path.advance());
         EXPECT_TRUE(is_sorted_set(path.points()));

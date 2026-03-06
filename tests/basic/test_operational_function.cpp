@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "test_fixtures.h"
+#include "../test_fixtures.h"
 #include "delta/core/operational_function.h"
 #include "delta/core/list_grid.h"
 #include "delta/core/uniform_grid.h"

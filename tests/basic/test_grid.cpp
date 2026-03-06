@@ -1,6 +1,6 @@
 //test_grid.cpp
 #include <gtest/gtest.h>
-#include "test_fixtures.h"
+#include "../test_fixtures.h"
 #include "delta/core/list_grid.h"
 
 using namespace delta::testing;

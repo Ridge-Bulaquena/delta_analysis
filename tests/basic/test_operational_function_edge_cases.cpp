@@ -1,6 +1,6 @@
 // tests/basic/test_operational_function_edge_cases.cpp
 #include <gtest/gtest.h>
-#include "test_fixtures.h"
+#include "../test_fixtures.h"
 
 namespace delta::testing {
 

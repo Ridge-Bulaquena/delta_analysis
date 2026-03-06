@@ -1,0 +1,37 @@
+// tests/calculus/test_rational_embedding.cpp
+#include <gtest/gtest.h>
+#include "test_fixtures.h"
+
+namespace delta::testing {
+
+    class RationalEmbeddingTest : public DeltaTest {};
+
+    TEST_F(RationalEmbeddingTest, RationalToReal) {
+        RealNumber r1(3_r);
+        RealNumber r2(3_r);
+
+        EXPECT_TRUE(r1 == r2);
+        EXPECT_TRUE(r1.approx_equal(r2, Rational(1, 1000)));
+
+        RealNumber r3(4_r);
+        EXPECT_FALSE(r1 == r3);
+    }
+
+    TEST_F(RationalEmbeddingTest, DifferentRepresentationsSameRational) {
+        // Постоянная последовательность для 3
+        auto seq1 = std::make_shared<FundamentalSequence>(
+            [](std::size_t) { return 3_r; }, Rational(0), Rational(1, 2), 0);
+
+        // Последовательность, сходящаяся к 3: 3 + 1/2^n
+        auto seq2 = std::make_shared<FundamentalSequence>(
+            [](std::size_t n) { return 3_r + Rational(1) / pow2(n); },
+            Rational(1), Rational(1, 2), 0);
+
+        RealNumber r1(seq1);
+        RealNumber r2(seq2);
+
+        EXPECT_TRUE(r1 == r2);
+        EXPECT_TRUE(r1.approx_equal(r2, Rational(1, 1000)));
+    }
+
+} // namespace delta::testing

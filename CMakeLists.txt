@@ -76,4 +76,5 @@ get_filename_component(MSVC_BIN_DIR ${CMAKE_CXX_COMPILER} DIRECTORY CACHE INTERN
 
 add_subdirectory("src")
 add_subdirectory("tests/basic")
+add_subdirectory("tests/calculus")
 add_subdirectory("tests/numerical")

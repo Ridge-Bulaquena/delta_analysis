@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "test_fixtures.h"
+#include "../test_fixtures.h"
 #include <type_traits>
 
 namespace delta::testing {

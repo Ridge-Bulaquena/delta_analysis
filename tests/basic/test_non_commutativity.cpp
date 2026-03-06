@@ -1,7 +1,7 @@
 // tests/basic/test_non_commutativity.cpp
 #include <gtest/gtest.h>
 #include <sstream>
-#include "test_fixtures.h"
+#include "../test_fixtures.h"
 
 using namespace delta::testing;
 

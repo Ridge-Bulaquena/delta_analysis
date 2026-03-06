@@ -2,7 +2,7 @@
 
 # 1. Создаем исполняемый файл
 add_executable(delta_tests
-    test_fixtures.h
+    "../test_fixtures.h"
     main_tests_basic.cpp
     test_grid.cpp
     test_grid_concepts.cpp
@@ -13,14 +13,13 @@ add_executable(delta_tests
     test_adaptive_operator.cpp
     test_operators_edge_cases.cpp
     test_adaptive_path.cpp
-    
     test_strategies_edge_cases.cpp
     test_integral.cpp
     test_sqrt2.cpp
     test_non_commutativity.cpp
     test_differentiability.cpp
 )
-target_include_directories(delta_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(delta_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 # 2. Привязываем всё необходимое
 # delta_core уже содержит: OpenMP, Eigen, Boost, fmt и пути к include
 target_link_libraries(delta_tests
@@ -29,6 +28,9 @@ target_link_libraries(delta_tests
     gtest_main   # gtest_main сам подтянет gtest, если используешь стандартный Google Test Main
 )
 
+if(MSVC)
+    target_compile_options(delta_tests PRIVATE /EHsc)
+endif()
 # 3. Интеграция с Test Explorer в Visual Studio
 include(GoogleTest)
 
