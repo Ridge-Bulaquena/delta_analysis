@@ -4,6 +4,7 @@
 #include <concepts>
 #include "interval_info.h"
 #include "rational.h"
+#include "regulative_idea.h"
 
 namespace delta {
 
@@ -26,6 +27,7 @@ namespace delta {
     struct MidpointOperator {
         template<typename Addr, typename Value, typename Distance,
             typename Betweenness, typename Metric, typename ValueMetric>
+            requires LinearAddress<Addr>   // <-- добавлено
         Addr operator()(const Addr& left, const Addr& right,
             const IntervalInfo<Addr, Value, Distance,
             Betweenness, Metric, ValueMetric>&) const {
@@ -35,11 +37,11 @@ namespace delta {
 
     class FixedLambdaOperator {
     public:
-        // Теперь принимаем Rational вместо double
         explicit FixedLambdaOperator(const Rational& lambda) : lambda_(lambda) {}
 
         template<typename Addr, typename Value, typename Distance,
             typename Betweenness, typename Metric, typename ValueMetric>
+            requires LinearAddress<Addr, Rational>   // <-- ScalableAddress с Rational
         Addr operator()(const Addr& left, const Addr& right,
             const IntervalInfo<Addr, Value, Distance,
             Betweenness, Metric, ValueMetric>&) const {
@@ -55,8 +57,10 @@ namespace delta {
         explicit DynamicLambdaOperator(std::function<double(std::size_t)> lambda_gen)
             : lambda_gen_(std::move(lambda_gen)) {
         }
+
         template<typename Addr, typename Value, typename Distance,
             typename Betweenness, typename Metric, typename ValueMetric>
+            requires LinearAddress<Addr, double>   // <-- ScalableAddress с double
         Addr operator()(const Addr& left, const Addr& right,
             const IntervalInfo<Addr, Value, Distance,
             Betweenness, Metric, ValueMetric>& info) const {
@@ -72,8 +76,10 @@ namespace delta {
         AdaptiveOperator(const Rational& threshold, const Rational& epsilon)
             : threshold_(threshold), epsilon_(epsilon) {
         }
+
         template<typename Addr, typename Value, typename Distance,
             typename Betweenness, typename Metric, typename ValueMetric>
+            requires LinearAddress<Addr, Distance>   // <-- ScalableAddress с Distance
         Addr operator()(const Addr& left, const Addr& right,
             const IntervalInfo<Addr, Value, Distance,
             Betweenness, Metric, ValueMetric>& info) const {

@@ -74,7 +74,8 @@ endif()
 # Важно: переменная для путей к DLL, если discovery падает
 get_filename_component(MSVC_BIN_DIR ${CMAKE_CXX_COMPILER} DIRECTORY CACHE INTERNAL "")
 
-add_subdirectory("src")
+
 add_subdirectory("tests/basic")
 add_subdirectory("tests/calculus")
 add_subdirectory("tests/numerical")
+add_subdirectory("examples/arbitrary_regulative_ideas")

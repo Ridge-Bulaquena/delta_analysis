@@ -1,7 +1,7 @@
 ﻿// src.cpp: определяет точку входа для приложения.
 //
 
-#include "src.h"
+#include "examples_fixtures.h"
 
 using namespace std;
 

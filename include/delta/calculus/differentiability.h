@@ -5,7 +5,8 @@
 #include <vector>
 #include <cmath>
 #include <stdexcept>
-#include "modulus.h" 
+#include "modulus.h"
+#include "delta/core/regulative_idea.h"
 
 namespace delta::calculus {
 
@@ -26,6 +27,7 @@ namespace delta::calculus {
      * Адрес должен быть внутренним (не крайним).
      */
     template<typename Grid, typename Func>
+        requires SubtractableAddress<typename Grid::value_type>   // <-- добавлено
     auto left_difference_quotient(const Grid& grid, const typename Grid::value_type& addr,
         Func&& func) {
         std::ptrdiff_t idx = find_address_index(grid, addr);
@@ -43,6 +45,7 @@ namespace delta::calculus {
      * @brief Возвращает правый разностный коэффициент для адреса на заданной сетке.
      */
     template<typename Grid, typename Func>
+        requires SubtractableAddress<typename Grid::value_type>   // <-- добавлено
     auto right_difference_quotient(const Grid& grid, const typename Grid::value_type& addr,
         Func&& func) {
         std::ptrdiff_t idx = find_address_index(grid, addr);
@@ -78,6 +81,7 @@ namespace delta::calculus {
      * @return true, если условие выполнено
      */
     template<typename Grid, typename Func, typename Distance, typename Addr, typename Mod>
+        requires SubtractableAddress<Addr>   // <-- добавлено
     bool check_differentiability(const std::vector<Grid>& grids, const Addr& addr,
         Func&& func, const Distance& D, const Mod& modulus,
         std::size_t first_level, double tolerance = 1e-12) {

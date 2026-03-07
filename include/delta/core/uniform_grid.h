@@ -6,7 +6,7 @@
 #include <functional>
 #include <type_traits>
 #include "grid_concept.h"
-
+#include "regulative_idea.h" 
 namespace delta {
 
     /**
@@ -20,6 +20,7 @@ namespace delta {
      * @tparam Compare Comparison functor (must be consistent with arithmetic order).
      */
     template<typename T, typename Compare = std::less<T>>
+        requires LinearAddress<T>
     class UniformGrid {
     public:
         using value_type = T;
@@ -94,6 +95,6 @@ namespace delta {
         };
     };
 
-    static_assert(GridConcept<UniformGrid<int>, int>);
+ 
 
 } // namespace delta

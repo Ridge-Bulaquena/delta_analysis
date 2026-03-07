@@ -3,7 +3,7 @@
 
 #include <cstddef>
 #include <functional>
-
+#include "delta/core/regulative_idea.h" 
 namespace delta::calculus {
 
     /**
@@ -18,6 +18,7 @@ namespace delta::calculus {
      * @return сумма
      */
     template<typename Grid, typename Func>
+        requires SubtractableAddress<typename Grid::value_type>   // <-- добавлено
     auto left_riemann_sum(const Grid& grid, Func&& func) {
         using Addr = typename Grid::value_type;
         using Value = decltype(func(grid[0]));
@@ -47,6 +48,7 @@ namespace delta::calculus {
      * @return сумма
      */
     template<typename Grid, typename Func>
+        requires SubtractableAddress<typename Grid::value_type>   // <-- добавлено
     auto right_riemann_sum(const Grid& grid, Func&& func) {
         using Addr = typename Grid::value_type;
         using Value = decltype(func(grid[0]));
@@ -75,6 +77,7 @@ namespace delta::calculus {
      * @return сумма
      */
     template<typename Grid, typename Func, typename Tagger>
+        requires SubtractableAddress<typename Grid::value_type>   // <-- добавлено
     auto tagged_riemann_sum(const Grid& grid, Func&& func, Tagger&& tagger) {
         using Addr = typename Grid::value_type;
         using Value = decltype(func(grid[0]));
