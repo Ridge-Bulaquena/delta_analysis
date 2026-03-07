@@ -109,5 +109,39 @@ namespace delta {
         Rational threshold_;
         Rational epsilon_;
     };
+    // -----------------------------------------------------------------------------
+// Операторы для нелинейных регулятивных идей (заглушки)
+// -----------------------------------------------------------------------------
+    struct MatrixMidpointOperator {
+        template<typename Addr, typename Value, typename Distance,
+            typename Betweenness, typename Metric, typename ValueMetric>
+            requires std::is_same_v<Addr, Eigen::MatrixXd>
+        Addr operator()(const Addr& left, const Addr& right,
+            const IntervalInfo<Addr, Value, Distance,
+            Betweenness, Metric, ValueMetric>&) const {
+            return (left + right) * 0.5;
+        }
+    };
+    struct TreeMidpointOperator {
+        template<typename Addr, typename Value, typename Distance,
+            typename Betweenness, typename Metric, typename ValueMetric>
+        Addr operator()(const Addr& left, const Addr& right,
+            const IntervalInfo<Addr, Value, Distance,
+            Betweenness, Metric, ValueMetric>&) const {
+            static_assert(sizeof(Addr) == 0, "TreeMidpointOperator is not implemented");
+            return Addr{};
+        }
+    };
 
+    template<int p>
+    struct PAdicMidpointOperator {
+        template<typename Addr, typename Value, typename Distance,
+            typename Betweenness, typename Metric, typename ValueMetric>
+            requires std::is_same_v<Addr, Rational>
+        Addr operator()(const Addr& left, const Addr& right,
+            const IntervalInfo<Addr, Value, Distance,
+            Betweenness, Metric, ValueMetric>&) const {
+            return (left + right) / 2;
+        }
+    };
 } // namespace delta

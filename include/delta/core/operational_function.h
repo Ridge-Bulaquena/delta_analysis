@@ -6,7 +6,7 @@
 #include <cassert>
 #include <type_traits>
 #include <Eigen/Dense>
-#include <Eigen/StdVector>   // для aligned_allocator
+#include <Eigen/StdVector>
 #include "list_grid.h"
 #include "uniform_grid.h"
 #include "grid_concept.h"
@@ -15,7 +15,6 @@
 namespace delta {
 
     namespace detail {
-        // Получение индекса в равномерной сетке по адресу
         template<typename Addr, typename Grid>
         std::size_t uniform_index(const Addr& addr, const Grid& grid) {
             auto idx = (addr - grid.start()) / grid.step();
@@ -30,79 +29,80 @@ namespace delta {
         }
     }
 
-
     // -------------------------------------------------------------------------
-    // Основной шаблон (для произвольных сеток) — использует std::map
+    // Основной шаблон (для произвольных сеток) — использует std::map с компаратором
     // -------------------------------------------------------------------------
-    template<typename Addr, typename Value, typename Grid, typename Enable = void>
-    class OperationalFunction {
-    public:
-        using Interpolator = std::function<Value(const Addr&, const Addr&,
-            const Value&, const Value&)>;
+    template<typename Addr, typename Value, typename Grid,
+        typename Compare = std::less<Addr>>
+        class OperationalFunction {
+        public:
+            using Interpolator = std::function<Value(const Addr&, const Addr&,
+                const Value&, const Value&)>;
 
-        template<typename Func>
-            requires GridConcept<Grid, Addr>
-        OperationalFunction(const Grid& grid, Func&& initial) {
-            for (const auto& addr : grid) {
-                values_[addr] = initial(addr);
-            }
-        }
-
-        template<typename OldGrid>
-            requires GridConcept<OldGrid, Addr>
-        void extend(const OldGrid& old_grid, const Grid& new_grid,
-            Interpolator interpolate) {
-            const std::size_t old_size = old_grid.size();
-            const std::size_t new_size = new_grid.size();
-
-            std::size_t old_idx = 0;
-            for (std::size_t new_idx = 0; new_idx < new_size; ++new_idx) {
-                const Addr& addr = new_grid[new_idx];
-
-                if (values_.find(addr) == values_.end()) {
-                    assert(old_idx + 1 < old_size && "No interval for new address");
-                    const Addr& left = old_grid[old_idx];
-                    const Addr& right = old_grid[old_idx + 1];
-                    Value val = interpolate(left, right,
-                        values_.at(left), values_.at(right));
-                    values_[addr] = std::move(val);
-                }
-
-                if (old_idx + 1 < old_size && addr == old_grid[old_idx + 1]) {
-                    ++old_idx;
+            template<typename Func>
+                requires GridConcept<Grid, Addr>
+            OperationalFunction(const Grid& grid, Func&& initial)
+                : values_(grid.comparator()) // используем компаратор сетки
+            {
+                for (const auto& addr : grid) {
+                    values_[addr] = initial(addr);
                 }
             }
 
-            assert(old_idx == old_size - 1 && "Did not consume all old addresses");
-        }
+            template<typename OldGrid>
+                requires GridConcept<OldGrid, Addr>
+            void extend(const OldGrid& old_grid, const Grid& new_grid,
+                Interpolator interpolate) {
+                const std::size_t old_size = old_grid.size();
+                const std::size_t new_size = new_grid.size();
 
-        const Value& operator()(const Addr& addr) const {
-            auto it = values_.find(addr);
-            if (it == values_.end()) {
-                throw std::out_of_range("Address not found in operational function");
+                std::size_t old_idx = 0;
+                for (std::size_t new_idx = 0; new_idx < new_size; ++new_idx) {
+                    const Addr& addr = new_grid[new_idx];
+
+                    if (values_.find(addr) == values_.end()) {
+                        assert(old_idx + 1 < old_size && "No interval for new address");
+                        const Addr& left = old_grid[old_idx];
+                        const Addr& right = old_grid[old_idx + 1];
+                        Value val = interpolate(left, right,
+                            values_.at(left), values_.at(right));
+                        values_[addr] = std::move(val);
+                    }
+
+                    if (old_idx + 1 < old_size && addr == old_grid[old_idx + 1]) {
+                        ++old_idx;
+                    }
+                }
+
+                assert(old_idx == old_size - 1 && "Did not consume all old addresses");
             }
-            return it->second;
-        }
 
-        bool contains(const Addr& addr) const {
-            return values_.find(addr) != values_.end();
-        }
+            const Value& operator()(const Addr& addr) const {
+                auto it = values_.find(addr);
+                if (it == values_.end()) {
+                    throw std::out_of_range("Address not found in operational function");
+                }
+                return it->second;
+            }
 
-    private:
-        std::map<Addr, Value> values_;
+            bool contains(const Addr& addr) const {
+                return values_.find(addr) != values_.end();
+            }
+
+        private:
+            std::map<Addr, Value, Compare> values_;
     };
 
     // -------------------------------------------------------------------------
     // Специализация для UniformGrid (равномерные сетки)
     // -------------------------------------------------------------------------
-   template<typename Addr, typename Value, typename Compare>
+    template<typename Addr, typename Value, typename Compare>
     class OperationalFunction<Addr, Value, UniformGrid<Addr, Compare>> {
     public:
         using Grid = UniformGrid<Addr, Compare>;
         using Interpolator = std::function<Value(const Addr&, const Addr&,
-                                                  const Value&, const Value&)>;
+            const Value&, const Value&)>;
 
-        // Для Eigen-типов используем aligned allocator
         using StorageType = std::conditional_t<
             std::is_same_v<Value, Eigen::MatrixXd>,
             std::vector<Value, Eigen::aligned_allocator<Value>>,
@@ -120,7 +120,7 @@ namespace delta {
         }
 
         void extend(const Grid& old_grid, const Grid& new_grid,
-                    Interpolator interpolate) {
+            Interpolator interpolate) {
             std::size_t old_n = old_grid.size();
             std::size_t new_n = new_grid.size();
 
@@ -133,12 +133,13 @@ namespace delta {
                 if (old_idx < old_n && addr == old_grid[old_idx]) {
                     new_values.push_back(values_[old_idx]);
                     ++old_idx;
-                } else {
+                }
+                else {
                     assert(old_idx > 0 && old_idx < old_n && "Invalid interpolation interval");
                     const Addr& left = old_grid[old_idx - 1];
                     const Addr& right = old_grid[old_idx];
                     Value val = interpolate(left, right,
-                                            values_[old_idx - 1], values_[old_idx]);
+                        values_[old_idx - 1], values_[old_idx]);
                     new_values.push_back(std::move(val));
                 }
             }
@@ -157,7 +158,8 @@ namespace delta {
             try {
                 detail::uniform_index(addr, grid_);
                 return true;
-            } catch (...) {
+            }
+            catch (...) {
                 return false;
             }
         }

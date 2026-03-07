@@ -9,6 +9,7 @@
 #include "interval_info.h"
 #include "value_metric.h"
 #include "delta_strategy.h"
+#include "tree_grid.h"  
 
 #ifndef DELTA_USE_CACHING
 #define DELTA_USE_CACHING 1
@@ -139,5 +140,33 @@ namespace delta {
         mutable std::vector<Addr> buffer_b_;
         bool use_buffer_a_;
     };
+    template<typename Value, typename ValueMetric = EuclideanValueMetric>
+    class TreeDeltaPath {
+    public:
+        using Addr = std::string;
+        using GridType = TreeGrid<std::less<Addr>>;
+        using Betweenness = TreeBetweenness;
+        using Metric = StringUltrametric;
 
+        TreeDeltaPath(ValueMetric vm = ValueMetric{})
+            : grid_(0), betweenness_{}, metric_{}, value_metric_(vm) {
+        }
+
+        const GridType& current_grid() const noexcept { return grid_; }
+        std::size_t level() const noexcept { return grid_.level(); }
+        void advance() { grid_.advance(); }
+
+        // Для совместимости с общими алгоритмами, но для дерева не имеет смысла
+        Addr max_gap() const { return Addr{}; }
+
+        const Betweenness& betweenness() const noexcept { return betweenness_; }
+        const Metric& metric() const noexcept { return metric_; }
+        const ValueMetric& value_metric() const noexcept { return value_metric_; }
+
+    private:
+        GridType grid_;
+        Betweenness betweenness_;
+        Metric metric_;
+        ValueMetric value_metric_;
+    };
 } // namespace delta

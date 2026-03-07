@@ -1,98 +1,63 @@
-// include/delta/calculus/riemann_sum.h
 #pragma once
 
 #include <cstddef>
 #include <functional>
-#include "delta/core/regulative_idea.h" 
+#include <cmath>
+#include <type_traits>
+#include "delta/core/regulative_idea.h"
+
 namespace delta::calculus {
 
-    /**
-     * @brief Вычисляет левую сумму Римана на заданной сетке.
-     *
-     * Σ f(x_i) * (x_{i+1} - x_i)
-     *
-     * @tparam Grid тип сетки (должен иметь size() и operator[])
-     * @tparam Func тип функции, отображающей адрес в значение
-     * @param grid сетка
-     * @param func функция
-     * @return сумма
-     */
     template<typename Grid, typename Func>
-        requires SubtractableAddress<typename Grid::value_type>   // <-- добавлено
+        requires SubtractableAddress<typename Grid::value_type>
     auto left_riemann_sum(const Grid& grid, Func&& func) {
         using Addr = typename Grid::value_type;
-        using Value = decltype(func(grid[0]));
-        using Diff = decltype(grid[1] - grid[0]);
-        // Результат — тип произведения Value * Diff, обычно Value, если Value поддерживает умножение на Diff
-        using Result = decltype(std::declval<Value>()* std::declval<Diff>());
-        Result sum{ 0 };
+        using Value = std::invoke_result_t<Func, Addr>;
         const std::size_t n = grid.size();
-        if (n < 2) return sum;
-
-        for (std::size_t i = 0; i + 1 < n; ++i) {
-            Addr dx = grid[i + 1] - grid[i];
-            sum = sum + func(grid[i]) * dx;
+        if (n < 2) return Value{};
+        Value sum = func(grid[0]) * (grid[1] - grid[0]);
+        for (std::size_t i = 1; i + 1 < n; ++i) {
+            sum = sum + func(grid[i]) * (grid[i + 1] - grid[i]);
         }
         return sum;
     }
 
-    /**
-     * @brief Вычисляет правую сумму Римана на заданной сетке.
-     *
-     * Σ f(x_{i+1}) * (x_{i+1} - x_i)
-     *
-     * @tparam Grid тип сетки
-     * @tparam Func тип функции
-     * @param grid сетка
-     * @param func функция
-     * @return сумма
-     */
     template<typename Grid, typename Func>
-        requires SubtractableAddress<typename Grid::value_type>   // <-- добавлено
+        requires SubtractableAddress<typename Grid::value_type>
     auto right_riemann_sum(const Grid& grid, Func&& func) {
         using Addr = typename Grid::value_type;
-        using Value = decltype(func(grid[0]));
-        using Diff = decltype(grid[1] - grid[0]);
-        using Result = decltype(std::declval<Value>()* std::declval<Diff>());
-        Result sum{ 0 };
+        using Value = std::invoke_result_t<Func, Addr>;
         const std::size_t n = grid.size();
-        if (n < 2) return sum;
-
-        for (std::size_t i = 0; i + 1 < n; ++i) {
-            Addr dx = grid[i + 1] - grid[i];
-            sum = sum + func(grid[i + 1]) * dx;
+        if (n < 2) return Value{};
+        Value sum = func(grid[1]) * (grid[1] - grid[0]);
+        for (std::size_t i = 1; i + 1 < n; ++i) {
+            sum = sum + func(grid[i + 1]) * (grid[i + 1] - grid[i]);
         }
         return sum;
     }
 
-    /**
-     * @brief Вычисляет сумму Римана с произвольным выбором тега.
-     *
-     * @tparam Grid тип сетки
-     * @tparam Func тип функции
-     * @tparam Tagger тип, вызываемый с (left, right) и возвращающий один из адресов
-     * @param grid сетка
-     * @param func функция
-     * @param tagger функтор, возвращающий тег для интервала [left, right]
-     * @return сумма
-     */
     template<typename Grid, typename Func, typename Tagger>
-        requires SubtractableAddress<typename Grid::value_type>   // <-- добавлено
+        requires SubtractableAddress<typename Grid::value_type>
     auto tagged_riemann_sum(const Grid& grid, Func&& func, Tagger&& tagger) {
         using Addr = typename Grid::value_type;
-        using Value = decltype(func(grid[0]));
-        using Diff = decltype(grid[1] - grid[0]);
-        using Result = decltype(std::declval<Value>()* std::declval<Diff>());
-        Result sum{ 0 };
+        using Value = std::invoke_result_t<Func, Addr>;
         const std::size_t n = grid.size();
-        if (n < 2) return sum;
+        if (n < 2) return Value{};
+        Value sum = func(tagger(grid[0], grid[1])) * (grid[1] - grid[0]);
+        for (std::size_t i = 1; i + 1 < n; ++i) {
+            sum = sum + func(tagger(grid[i], grid[i + 1])) * (grid[i + 1] - grid[i]);
+        }
+        return sum;
+    }
 
-        for (std::size_t i = 0; i + 1 < n; ++i) {
-            const Addr& left = grid[i];
-            const Addr& right = grid[i + 1];
-            Addr tag = tagger(left, right);
-            Addr dx = right - left;
-            sum = sum + func(tag) * dx;
+    // Специализация для дерева (бинарные строки)
+    template<typename Path, typename Func>
+    double tree_riemann_sum(const Path& path, Func&& func) {
+        double sum = 0.0;
+        auto grid = path.current_grid();
+        for (const auto& addr : grid) {
+            double weight = std::pow(2.0, -static_cast<double>(addr.size()));
+            sum += func(addr) * weight;
         }
         return sum;
     }
