@@ -5,6 +5,7 @@
 #include <vector>
 #include <cmath>
 #include <stdexcept>
+#include "modulus.h" 
 
 namespace delta::calculus {
 
@@ -54,42 +55,50 @@ namespace delta::calculus {
         auto dx = right - addr;
         return (f_right - f_left) / dx;
     }
-
     /**
-     * @brief Проверяет дифференцируемость в смысле определения 3.4.
+     * @brief Проверяет дифференцируемость в смысле определения 3.4,
+     *        обобщённого с использованием модуля сходимости.
+     *
+     * Для всех уровней n >= first_level проверяется:
+     *   |Δ⁻ₙf(x) - D| ≤ modulus(δ_n) + tolerance,
+     *   |Δ⁺ₙf(x) - D| ≤ modulus(δ_n) + tolerance.
      *
      * @tparam Grid тип сетки
      * @tparam Func тип функции
-     * @tparam Distance тип расстояния (должен иметь convert_to<double>)
+     * @tparam Distance тип расстояния (должен поддерживать convert_to<double> и арифметику)
+     * @tparam Addr тип адреса
+     * @tparam Mod тип модуля (Modulus<Distance>)
      * @param grids вектор сеток последовательных уровней
      * @param addr адрес для проверки
      * @param func функция
      * @param D ожидаемая производная
-     * @param C0 константа C0
-     * @param beta показатель beta
-     * @param first_level уровень, на котором адрес впервые появляется (проверка начнётся с него)
-     * @param tolerance допуск при сравнении с плавающей точкой
-     * @return true, если для всех уровней начиная с first_level выполнено условие
+     * @param modulus модуль сходимости (вызывается с максимальным шагом уровня)
+     * @param first_level уровень, на котором адрес впервые появляется
+     * @param tolerance допуск
+     * @return true, если условие выполнено
      */
-    template<typename Grid, typename Func, typename Distance, typename Addr>
+    template<typename Grid, typename Func, typename Distance, typename Addr, typename Mod>
     bool check_differentiability(const std::vector<Grid>& grids, const Addr& addr,
-        Func&& func,
-        const Distance& D, const Distance& C0, double beta,
+        Func&& func, const Distance& D, const Mod& modulus,
         std::size_t first_level, double tolerance = 1e-12) {
         for (std::size_t n = first_level; n < grids.size(); ++n) {
             const auto& grid = grids[n];
             std::ptrdiff_t idx = find_address_index(grid, addr);
-            if (idx < 0) return false;          // адрес должен присутствовать
-            if (idx == 0 || idx == static_cast<std::ptrdiff_t>(grid.size()) - 1) return false; // должен быть внутренним
+            if (idx < 0) return false;
+            if (idx == 0 || idx == static_cast<std::ptrdiff_t>(grid.size()) - 1) return false;
 
             auto left_dq = left_difference_quotient(grid, addr, func);
             auto right_dq = right_difference_quotient(grid, addr, func);
 
-            double bound = C0.convert_to<double>() * std::pow(2.0, -beta * n);
-            double left_error = std::abs((left_dq - D).convert_to<double>());
-            double right_error = std::abs((right_dq - D).convert_to<double>());
+            Distance delta_n = max_gap(grid);
+            Distance bound = modulus(delta_n); // модуль должен возвращать Distance
 
-            if (left_error > bound + tolerance || right_error > bound + tolerance) {
+            // Преобразуем в double для сравнения с допуском
+            double left_error = std::abs((left_dq - D).template convert_to<double>());
+            double right_error = std::abs((right_dq - D).template convert_to<double>());
+            double bound_d = bound.template convert_to<double>();
+
+            if (left_error > bound_d + tolerance || right_error > bound_d + tolerance) {
                 return false;
             }
         }

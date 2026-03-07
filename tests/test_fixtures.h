@@ -16,9 +16,15 @@
 #include "delta/core/adaptive_delta_path.h"
 #include "delta/core/operational_function.h"
 #include "delta/core/completion.h"
+#include "delta/calculus/modulus.h"
+#include "delta/calculus/continuity.h"
+#include "delta/calculus/differentiability.h"
+
+
 
 namespace delta::testing {
     using namespace delta;
+    using namespace delta::calculus;
     using Addr = Rational;
     using Val = Rational;
     using Dist = Rational;

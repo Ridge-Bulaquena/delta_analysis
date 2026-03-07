@@ -32,33 +32,30 @@ namespace delta::calculus {
         }
         return max_dist;
     }
-
     /**
-     * @brief Проверяет выполнение условия непрерывности (определение 2.7) для заданных констант.
-     *
-     * @tparam Grid тип сетки
-     * @tparam Func тип функции
-     * @tparam ValueMetric тип метрики значений
-     * @tparam Distance тип расстояния (должен поддерживать умножение на double и сравнение)
-     * @param grid сетка на уровне n
-     * @param func функция
-     * @param vm метрика значений
-     * @param L константа L (рациональное число, либо любой тип, умножаемый на double)
-     * @param alpha показатель степени α
-     * @param n номер уровня
-     * @param tolerance допуск для сравнения с плавающей точкой (по умолчанию 0, но можно задать)
-     * @return true, если max_oscillation ≤ L * 2^{-α n} с учётом допуска
-     */
-    template<typename Grid, typename Func, typename ValueMetric, typename Distance>
+        * @brief Проверяет выполнение условия непрерывности (обобщённое определение 7.5.2)
+        *
+        * Для всех соседних адресов проверяется |f(x_{i+1}) - f(x_i)| ≤ modulus(δ_n) + tolerance,
+        * где δ_n — максимальный шаг сетки.
+        *
+        * @tparam Grid тип сетки
+        * @tparam Func тип функции
+        * @tparam ValueMetric тип метрики значений
+        * @tparam Mod тип модуля (должен удовлетворять концепту Modulus<Distance>)
+        * @param grid сетка
+        * @param func функция
+        * @param vm метрика значений
+        * @param modulus модуль непрерывности, вызываемый с максимальным шагом сетки
+        * @param tolerance допуск для сравнения с плавающей точкой
+        * @return true, если условие выполнено
+        */
+    template<typename Grid, typename Func, typename ValueMetric, typename Mod>
     bool check_continuity_level(const Grid& grid, Func&& func, const ValueMetric& vm,
-        const Distance& L, double alpha, std::size_t n,
-        double tolerance = 0.0) {
+        const Mod& modulus, double tolerance = 0.0) {
+        using Distance = decltype(vm(func(grid[0]), func(grid[0])));
         Distance max_osc = max_oscillation(grid, std::forward<Func>(func), vm);
-        // Вычисляем bound = L * 2^{-α n}
-        // Так как L может быть не double, используем умножение на double результат приводим к Distance
-        double bound_double = L.convert_to<double>() * std::pow(2.0, -alpha * n);
-        Distance bound = Distance(bound_double);
-        // Проверяем с учётом допуска
+        Distance delta_n = max_gap(grid);
+        Distance bound = modulus(delta_n);
         return max_osc <= bound + Distance(tolerance);
     }
 
