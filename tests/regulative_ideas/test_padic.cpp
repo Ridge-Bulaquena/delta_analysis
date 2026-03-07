@@ -1,3 +1,4 @@
+//tests/regulative_ideas/test_padic.cpp
 #include <gtest/gtest.h>
 #include "../test_fixtures.h"
 #include "delta/calculus/continuity.h"
@@ -87,5 +88,77 @@ namespace delta::testing {
         // Если дошли до сюда, значит тест пройден (исключений не было)
         SUCCEED();
     }
+    TEST_F(PAdicPathTest2, EmptyGridRiemannSum) {
+        ListGrid<Addr, Compare> empty_grid;
+        auto func = [](const Addr&) { return Rational(0); };
+        auto sum = left_riemann_sum(empty_grid, func);
+        EXPECT_EQ(sum, 0_r);
+    }
 
+    TEST_F(PAdicPathTest2, SinglePointGridRiemannSum) {
+        ListGrid<Addr, Compare> grid({ 5_r });
+        auto func = [](const Addr& x) { return x; };
+        auto sum = left_riemann_sum(grid, func);
+        EXPECT_EQ(sum, 0_r);
+    }
+
+    // Проверка дифференцируемости f(x)=x
+    TEST_F(PAdicPathTest2, IdentityDifferentiability) {
+        // Строим последовательность сеток, как в тестах calculus
+        ListGrid<Addr, Compare> grid0({ 0_r, 1_r });
+        auto path = make_midpoint_path(grid0);
+        auto func = [](const Addr& x) { return x; };
+
+        using Grid = ListGrid<Addr, Compare>;
+        std::vector<Grid> grids;
+        grids.push_back(path.current_grid());
+        for (int i = 0; i < 5; ++i) {
+            path.advance(func);
+            grids.push_back(path.current_grid());
+        }
+
+        Addr x = 1_r / 2_r;
+        Distance D = 1_r;
+        PowerModulus<Rational> modulus(0_r, 1_r); // нулевой модуль, так как ошибка 0
+
+        std::size_t first_level = 0;
+        for (; first_level < grids.size(); ++first_level) {
+            if (find_address_index(grids[first_level], x) >= 0) break;
+        }
+        ASSERT_LT(first_level, grids.size());
+
+        bool diff = check_differentiability(grids, x, func, D, modulus, first_level, 1e-12);
+        EXPECT_TRUE(diff);
+    }
+
+    // Интеграл от f(x)=x на [0,1] (в смысле обычного интеграла, несмотря на p-адическую метрику)
+    TEST_F(PAdicPathTest2, IdentityIntegral) {
+        ListGrid<Addr, Compare> grid0({ 0_r, 1_r });
+        auto path = make_midpoint_path(grid0);
+        auto func = [](const Addr& x) { return x; };
+
+        for (int i = 0; i < 5; ++i) {
+            path.advance(func);
+        }
+
+        auto integral = left_riemann_sum(path.current_grid(), func);
+        EXPECT_RATIONAL_NEAR(integral, 1_r / 2_r, Rational(1, 1000));
+    }
+
+    // AdaptiveDeltaPath для f(x)=x^2
+    TEST_F(PAdicPathTest2, AdaptivePathForSquare) {
+        std::vector<Addr> init = { 0_r, 1_r };
+        auto func = [](const Addr& x) { return x * x; };
+        AdaptiveDeltaPath<Addr, Value, Distance, Betweenness, Metric, ValueMetric, MidpointOperator, Compare>
+            path(init, func, MidpointOperator{}, Rational(1, 100), betweenness_, metric_, value_metric_);
+
+        int steps = 0;
+        const int max_steps = 10;
+        while (steps < max_steps && path.advance()) {
+            ++steps;
+            EXPECT_TRUE(is_sorted_set(path.points()));
+        }
+        EXPECT_GT(steps, 0);
+        EXPECT_GT(path.size(), 2);
+    }
 } // namespace delta::testing

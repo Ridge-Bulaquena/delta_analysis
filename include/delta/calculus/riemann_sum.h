@@ -54,10 +54,13 @@ namespace delta::calculus {
     template<typename Path, typename Func>
     double tree_riemann_sum(const Path& path, Func&& func) {
         double sum = 0.0;
-        auto grid = path.current_grid();
+        const auto& grid = path.current_grid();
+        std::size_t level = grid.level(); // или path.level()
         for (const auto& addr : grid) {
-            double weight = std::pow(2.0, -static_cast<double>(addr.size()));
-            sum += func(addr) * weight;
+            if (addr.size() == level) {   // только листья
+                double weight = std::pow(2.0, -static_cast<double>(level));
+                sum += func(addr) * weight;
+            }
         }
         return sum;
     }
