@@ -65,17 +65,16 @@ namespace delta::testing {
 
         double prev = 0.0;
         for (int level = 1; level <= 5; ++level) {
+            path.advance();
             double integral = calculus::tree_riemann_sum(path, func);
             EXPECT_NEAR(integral, 0.5, 0.1);
             if (level > 1) {
                 EXPECT_NEAR(integral, prev, 0.2);
             }
             prev = integral;
-            path.advance();
         }
     }
 
-    // Integral of characteristic function of right half (strings ending with '1')
     TEST_F(TreePathTest, RightHalfCharacteristic) {
         TreeDeltaPath<double> path;
         auto func = [](const std::string& addr) -> double {
@@ -85,13 +84,13 @@ namespace delta::testing {
 
         double prev = 0.0;
         for (int level = 1; level <= 5; ++level) {
+            path.advance();
             double integral = calculus::tree_riemann_sum(path, func);
             EXPECT_NEAR(integral, 0.5, 0.1);
             if (level > 1) {
                 EXPECT_NEAR(integral, prev, 0.2);
             }
             prev = integral;
-            path.advance();
         }
     }
 } // namespace delta::testing

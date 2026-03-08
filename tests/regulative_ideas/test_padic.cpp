@@ -3,6 +3,7 @@
 #include "../test_fixtures.h"
 #include "delta/calculus/continuity.h"
 #include "delta/calculus/modulus.h"
+#include "delta/calculus/riemann_sum.h"
 
 namespace delta::testing {
 
@@ -137,7 +138,8 @@ namespace delta::testing {
         auto path = make_midpoint_path(grid0);
         auto func = [](const Addr& x) { return x; };
 
-        for (int i = 0; i < 5; ++i) {
+        const int steps = 10;
+        for (int i = 0; i < steps; ++i) {
             path.advance(func);
         }
 
