@@ -98,7 +98,7 @@ namespace delta {
         Addr operator()(const Addr& left, const Addr& right,
             const IntervalInfo<Addr, Value, Distance,
             Betweenness, Metric, ValueMetric>& info) const {
-            if (numerator(info.max_oscillation) == 0) {
+            if (info.max_oscillation == Distance(0)) {
                 return (left + right) / Addr{ 2 };
             }
             Distance df = info.value_metric(info.f_right, info.f_left);

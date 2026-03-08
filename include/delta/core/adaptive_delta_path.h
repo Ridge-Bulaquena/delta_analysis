@@ -23,7 +23,8 @@ namespace delta {
      * @brief Adaptive refinement path using a priority queue of intervals.
      *
      * The path starts from a given set of initial points and adaptively inserts new points
-     * based on a priority that combines total variation and deviation from linearity.
+     * based on a priority that reflects the deviation from linearity (i.e., how much the
+     * function at the midpoint deviates from the linear interpolation of the endpoints).
      * Values of the function are cached to avoid repeated calls.
      *
      * @tparam Addr         Address type (must satisfy Address concept).
@@ -70,6 +71,9 @@ namespace delta {
             , max_oscillation_(Distance{ 0 })
             , level_(0)
         {
+            if (threshold <= Distance(0)) {
+                throw std::invalid_argument("AdaptiveDeltaPath: threshold must be positive. Precision within zero margin of error will not be attained within several lifetimes of the universe. Get real.");
+            }
             for (const auto& addr : initial_points) {
                 points_.insert(addr);
                 values_[addr] = func_(addr);
@@ -98,6 +102,9 @@ namespace delta {
             Betweenness betweenness = Betweenness{},
             Metric metric = Metric{},
             ValueMetric value_metric = ValueMetric{}) {
+            if (threshold <= Distance(0)) {
+                throw std::invalid_argument("AdaptiveDeltaPath::from_uniform: threshold must be positive. Precision within zero margin of error will not be attained within several lifetimes of the universe. Get real.");
+            }
             // Build a uniform path using DeltaPath
             ListGrid<Addr, Compare> grid0(initial_points.begin(), initial_points.end(), Compare{});
             auto strategy = StaticStrategy<Operator>(op);
@@ -166,23 +173,35 @@ namespace delta {
                 IntervalInfo<Addr, Value, Distance, Betweenness, Metric, ValueMetric>
                     info{ left, right, child_level, f_left, f_right, max_oscillation_,
                          betweenness_, metric_, value_metric_ };
+
                 Addr mid = op_(left, right, info);
                 if (!betweenness_(left, mid, right)) {
 #ifndef NDEBUG
                     std::cerr << "WARNING: Operator returned point not between, using midpoint\n";
 #endif
                     mid = (left + right) / 2;
-                    assert(betweenness_(left, mid, right) && "Midpoint must be between");
+                    if (!betweenness_(left, mid, right)) {
+                        // Even midpoint is not between – interval cannot be refined further
+#ifndef NDEBUG
+                        std::cerr << "WARNING: Interval cannot be refined further, skipping\n";
+#endif
+                        return;  // skip this interval entirely
+                    }
                 }
                 Value f_mid = func_(mid);
                 values_[mid] = f_mid;
 
+                // Compute deviation from linearity (main priority criterion)
+                Value linear = (f_left + f_right) / 2;
+                Distance deviation = value_metric_(linear, f_mid);
+
+                // Optionally compute total variation (not used for priority, but kept for completeness)
                 Distance var_l = value_metric_(f_left, f_mid);
                 Distance var_r = value_metric_(f_mid, f_right);
                 Distance total_var = std::max(var_l, var_r);
-                Value linear = (f_left + f_right) / 2;
-                Distance deviation = value_metric_(linear, f_mid);
-                Distance priority = total_var + deviation;
+
+                // Priority is solely based on deviation
+                Distance priority = deviation;
 
                 if (priority > threshold_) {
                     queue_.push(Interval{ left, right, mid, f_left, f_right, f_mid, priority, child_level });
@@ -232,17 +251,39 @@ namespace delta {
                 IntervalInfo<Addr, Value, Distance, Betweenness, Metric, ValueMetric>
                     info{ left, right, 0, f_left, f_right, max_oscillation_,
                          betweenness_, metric_, value_metric_ };
+
                 Addr mid = op_(left, right, info);
-                assert(betweenness_(left, mid, right) && "Midpoint must be between");
+                bool mid_ok = betweenness_(left, mid, right);
+                if (!mid_ok) {
+#ifndef NDEBUG
+                    std::cerr << "WARNING: Operator returned point not between, using midpoint\n";
+#endif
+                    mid = (left + right) / 2;
+                    mid_ok = betweenness_(left, mid, right);
+                    if (!mid_ok) {
+                        // Even midpoint is not between – interval cannot be refined
+#ifndef NDEBUG
+                        std::cerr << "WARNING: Interval cannot be refined, skipping\n";
+#endif
+                        ++it;
+                        ++next;
+                        continue; // skip this interval entirely
+                    }
+                }
                 Value f_mid = func_(mid);
                 values_[mid] = f_mid;
 
+                // Compute deviation from linearity
+                Value linear = (f_left + f_right) / 2;
+                Distance deviation = value_metric_(linear, f_mid);
+
+                // Optionally compute total variation (not used for priority)
                 Distance var_l = value_metric_(f_left, f_mid);
                 Distance var_r = value_metric_(f_mid, f_right);
                 Distance total_var = std::max(var_l, var_r);
-                Value linear = (f_left + f_right) / 2;
-                Distance deviation = value_metric_(linear, f_mid);
-                Distance priority = total_var + deviation;
+
+                // Priority is solely based on deviation
+                Distance priority = deviation;
 
                 if (priority > threshold_) {
                     queue_.push(Interval{ left, right, mid, f_left, f_right, f_mid, priority, 0 });
