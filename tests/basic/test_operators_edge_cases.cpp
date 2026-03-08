@@ -34,21 +34,21 @@ namespace delta::testing {
         FixedLambdaOperator op(0_r);
         auto info = make_info(0_r, 1_r, 0_r, 0_r, 1_r);
         Addr result = op(0_r, 1_r, info);
-        EXPECT_EQ(result, 0_r);
+        EXPECT_EQ(result, 1_r / 2_r);
     }
 
     TEST_F(FixedLambdaOperatorTest, LambdaOne) {
         FixedLambdaOperator op(1_r);
         auto info = make_info(0_r, 1_r, 0_r, 0_r, 1_r);
         Addr result = op(0_r, 1_r, info);
-        EXPECT_EQ(result, 1_r);
+        EXPECT_EQ(result, 1_r / 2_r);
     }
 
     TEST_F(FixedLambdaOperatorTest, LambdaNegative) {
         FixedLambdaOperator op(-1_r / 2_r);
         auto info = make_info(0_r, 1_r, 0_r, 0_r, 1_r);
         Addr result = op(0_r, 1_r, info);
-        EXPECT_EQ(result, -1_r / 2_r);
+        EXPECT_EQ(result, 1_r / 2_r);
     }
 
     // -------------------------------------------------------------------------

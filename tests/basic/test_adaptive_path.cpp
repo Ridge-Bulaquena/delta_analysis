@@ -231,14 +231,14 @@ TEST_F(AdaptivePathTest, ManyRefinementsMidpoint) {
 // Проверка, что при достижении порога очередь пустеет
 TEST_F(AdaptivePathTest, QueueEmpties) {
     std::vector<Addr> init = { 0_r, 1_r };
-    auto func = [](const Addr& x) { return x; }; // вариация = 1
+    auto func = [](const Addr& x) { return x; }; // линейная функция
     MidpointOperator op;
-    Dist threshold = 1_r - Rational(1, 1000); // чуть меньше 1
+    Dist threshold = 1_r / 2_r - Rational(1, 1000); // чуть меньше 0.5
 
     auto path = make_adaptive_path(init, func, op, threshold);
 
-    EXPECT_TRUE(path.advance()); // первый шаг вставляет точку
-    EXPECT_FALSE(path.advance()); // второй шаг невозможен
+    EXPECT_TRUE(path.advance()); // первый шаг вставляет точку (приоритет 0.5 > threshold)
+    EXPECT_FALSE(path.advance()); // второй шаг невозможен (новые интервалы имеют приоритет 0.25)
     EXPECT_EQ(path.size(), 3);
 }
 

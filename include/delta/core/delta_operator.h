@@ -27,7 +27,7 @@ namespace delta {
     struct MidpointOperator {
         template<typename Addr, typename Value, typename Distance,
             typename Betweenness, typename Metric, typename ValueMetric>
-            requires LinearAddress<Addr>   // <-- добавлено
+            requires LinearAddress<Addr>
         Addr operator()(const Addr& left, const Addr& right,
             const IntervalInfo<Addr, Value, Distance,
             Betweenness, Metric, ValueMetric>&) const {
@@ -41,11 +41,19 @@ namespace delta {
 
         template<typename Addr, typename Value, typename Distance,
             typename Betweenness, typename Metric, typename ValueMetric>
-            requires LinearAddress<Addr, Rational>   // <-- ScalableAddress с Rational
+            requires LinearAddress<Addr, Rational>
         Addr operator()(const Addr& left, const Addr& right,
             const IntervalInfo<Addr, Value, Distance,
             Betweenness, Metric, ValueMetric>&) const {
-            return left + lambda_ * (right - left);
+            Addr mid = left + lambda_ * (right - left);
+            // Guard against numerical issues: if mid is outside, fallback to midpoint
+            if (mid <= left || mid >= right) {
+#ifndef NDEBUG
+                std::cerr << "WARNING: FixedLambdaOperator produced out-of-bounds point, using midpoint\n";
+#endif
+                return (left + right) / Addr{ 2 };
+            }
+            return mid;
         }
     private:
         Rational lambda_;
@@ -60,12 +68,19 @@ namespace delta {
 
         template<typename Addr, typename Value, typename Distance,
             typename Betweenness, typename Metric, typename ValueMetric>
-            requires LinearAddress<Addr, double>   // <-- ScalableAddress с double
+            requires LinearAddress<Addr, double>
         Addr operator()(const Addr& left, const Addr& right,
             const IntervalInfo<Addr, Value, Distance,
             Betweenness, Metric, ValueMetric>& info) const {
             double lambda = lambda_gen_(info.level);
-            return left + Addr(lambda) * (right - left);
+            Addr mid = left + Addr(lambda) * (right - left);
+            if (mid <= left || mid >= right) {
+#ifndef NDEBUG
+                std::cerr << "WARNING: DynamicLambdaOperator produced out-of-bounds point, using midpoint\n";
+#endif
+                return (left + right) / Addr{ 2 };
+            }
+            return mid;
         }
     private:
         std::function<double(std::size_t)> lambda_gen_;
@@ -79,7 +94,7 @@ namespace delta {
 
         template<typename Addr, typename Value, typename Distance,
             typename Betweenness, typename Metric, typename ValueMetric>
-            requires LinearAddress<Addr, Distance>   // <-- ScalableAddress с Distance
+            requires LinearAddress<Addr, Distance>
         Addr operator()(const Addr& left, const Addr& right,
             const IntervalInfo<Addr, Value, Distance,
             Betweenness, Metric, ValueMetric>& info) const {
@@ -94,12 +109,9 @@ namespace delta {
             if (alpha < Distance(epsilon_)) alpha = Distance(epsilon_);
             if (alpha > Distance(1) - Distance(epsilon_)) alpha = Distance(1) - Distance(epsilon_);
             Addr mid = left + alpha * (right - left);
-            if (!(left < mid && mid < right)) {
+            if (mid <= left || mid >= right) {
 #ifndef NDEBUG
-                std::cerr << "WARNING: AdaptiveOperator produced non-between point: left=" << left
-                    << ", mid=" << mid << ", right=" << right
-                    << ", alpha=" << alpha << ", epsilon=" << epsilon_
-                    << ", df=" << df << ", max_osc=" << info.max_oscillation << std::endl;
+                std::cerr << "WARNING: AdaptiveOperator produced out-of-bounds point, using midpoint\n";
 #endif
                 return (left + right) / Addr{ 2 };
             }
@@ -109,9 +121,10 @@ namespace delta {
         Rational threshold_;
         Rational epsilon_;
     };
+
     // -----------------------------------------------------------------------------
-// Операторы для нелинейных регулятивных идей (заглушки)
-// -----------------------------------------------------------------------------
+    // Operators for non-linear regulative ideas (stubs)
+    // -----------------------------------------------------------------------------
     struct MatrixMidpointOperator {
         template<typename Addr, typename Value, typename Distance,
             typename Betweenness, typename Metric, typename ValueMetric>
@@ -122,6 +135,7 @@ namespace delta {
             return (left + right) * 0.5;
         }
     };
+
     struct TreeMidpointOperator {
         template<typename Addr, typename Value, typename Distance,
             typename Betweenness, typename Metric, typename ValueMetric>
@@ -144,4 +158,5 @@ namespace delta {
             return (left + right) / 2;
         }
     };
+
 } // namespace delta
