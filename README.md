@@ -171,38 +171,6 @@ int main() {
 
 This example demonstrates that Δ‑analysis is not just a theoretical construct: it provides a practical, **rigorous** framework for adaptive grid generation, with the same mathematical guarantees as the underlying theory. The adaptive path is a valid Δ‑path, so all convergence theorems apply – the integral of `|x‑0.5|` computed on this grid will converge to the true value, and we even obtain explicit error bounds from the priority threshold.
 
----
-
-## 📊 Benchmarks
-
-The `benchmarks/` folder contains several Google Benchmark executables:
-
-- `benchmark_advance` – measures the cost of one `DeltaPath::advance()` step.
-- `benchmark_operational_function` – evaluates extension of an operational function to a refined grid.
-- `benchmark_riemann_sum` – times left Riemann sum computation on grids of increasing size.
-- `benchmark_adaptive_path` – measures performance of adaptive refinement.
-
-To run all benchmarks:
-
-```bash
-cd out/build/<preset>
-ctest -R benchmark -C Release
-```
-
----
-
-## 🧪 Testing
-
-The library is thoroughly tested. All tests are automatically discovered by CTest and can be run with:
-
-```bash
-ctest --output-on-failure
-```
-
-Tests are also integrated with Visual Studio’s Test Explorer (on Windows) for easy development.
-
----
-
 ## 🔧 Building
 
 ### Requirements
@@ -242,6 +210,63 @@ cmake --build .
 ```
 
 ---
+
+
+```bash
+# Configure the project (example with x64-debug preset)
+cmake --preset x64-debug
+
+# Build the tests and benchmarks
+cmake --build out/build/x64-debug
+
+# Run all tests
+cd out/build/x64-debug
+ctest --output-on-failure
+
+# Run only benchmarks (they are also registered as tests)
+ctest -R benchmark -C Debug
+```
+
+(For Release builds, replace `Debug` with `Release` in the preset name and `-C` flag.)
+
+---
+
+## 📊 Benchmarks
+
+The `benchmarks/` folder contains several Google Benchmark executables:
+
+- `benchmark_advance` – measures the cost of one `DeltaPath::advance()` step.
+- `benchmark_operational_function` – evaluates extension of an operational function to a refined grid.
+- `benchmark_riemann_sum` – times left Riemann sum computation on grids of increasing size.
+- `benchmark_adaptive_path` – measures performance of adaptive refinement.
+
+To build and run all benchmarks:
+
+```bash
+cmake --preset x64-release          # configure
+cmake --build out/build/x64-release # build
+cd out/build/x64-release
+ctest -R benchmark -C Release       # run
+```
+
+---
+
+## 🧪 Testing
+
+The library is thoroughly tested. All tests are automatically discovered by CTest.  
+To build and run the full test suite:
+
+```bash
+cmake --preset x64-debug
+cmake --build out/build/x64-debug
+cd out/build/x64-debug
+ctest --output-on-failure
+```
+
+Tests are also integrated with Visual Studio’s Test Explorer (on Windows) for easy development.
+
+### If It Doesn't Build
+Well, life is tough - go figure. 
 
 ## 📄 License
 
