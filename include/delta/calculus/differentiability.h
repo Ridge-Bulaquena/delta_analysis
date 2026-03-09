@@ -11,8 +11,13 @@
 namespace delta::calculus {
 
     /**
-     * @brief Находит индекс адреса в сетке.
-     * @return индекс или -1, если не найден.
+     * @brief Find the index of an address in a grid.
+     *
+     * @tparam Grid A type satisfying GridConcept.
+     * @tparam Addr Address type (must be equality‑comparable).
+     * @param grid The grid to search.
+     * @param addr The address to locate.
+     * @return Index of the address if found, otherwise -1.
      */
     template<typename Grid, typename Addr>
     std::ptrdiff_t find_address_index(const Grid& grid, const Addr& addr) {
@@ -23,11 +28,21 @@ namespace delta::calculus {
     }
 
     /**
-     * @brief Возвращает левый разностный коэффициент для адреса на заданной сетке.
-     * Адрес должен быть внутренним (не крайним).
+     * @brief Compute the left difference quotient at an interior address.
+     *
+     * For a grid with points ..., x_{i-1}, x_i, x_{i+1}, ... and a function f,
+     * the left difference quotient is (f(x_i) - f(x_{i-1})) / (x_i - x_{i-1}).
+     *
+     * @tparam Grid A type satisfying GridConcept; its value_type must be SubtractableAddress.
+     * @tparam Func Callable with signature Value(const Addr&).
+     * @param grid The grid containing the address.
+     * @param addr The address at which the quotient is computed (must be interior).
+     * @param func The function.
+     * @return The left difference quotient.
+     * @throws std::invalid_argument if addr is not found or is an endpoint.
      */
     template<typename Grid, typename Func>
-        requires SubtractableAddress<typename Grid::value_type>   // <-- добавлено
+        requires SubtractableAddress<typename Grid::value_type>
     auto left_difference_quotient(const Grid& grid, const typename Grid::value_type& addr,
         Func&& func) {
         std::ptrdiff_t idx = find_address_index(grid, addr);
@@ -42,10 +57,21 @@ namespace delta::calculus {
     }
 
     /**
-     * @brief Возвращает правый разностный коэффициент для адреса на заданной сетке.
+     * @brief Compute the right difference quotient at an interior address.
+     *
+     * For a grid with points ..., x_{i-1}, x_i, x_{i+1}, ... and a function f,
+     * the right difference quotient is (f(x_{i+1}) - f(x_i)) / (x_{i+1} - x_i).
+     *
+     * @tparam Grid A type satisfying GridConcept; its value_type must be SubtractableAddress.
+     * @tparam Func Callable with signature Value(const Addr&).
+     * @param grid The grid containing the address.
+     * @param addr The address at which the quotient is computed (must be interior).
+     * @param func The function.
+     * @return The right difference quotient.
+     * @throws std::invalid_argument if addr is not found or is an endpoint.
      */
     template<typename Grid, typename Func>
-        requires SubtractableAddress<typename Grid::value_type>   // <-- добавлено
+        requires SubtractableAddress<typename Grid::value_type>
     auto right_difference_quotient(const Grid& grid, const typename Grid::value_type& addr,
         Func&& func) {
         std::ptrdiff_t idx = find_address_index(grid, addr);
@@ -58,30 +84,32 @@ namespace delta::calculus {
         auto dx = right - addr;
         return (f_right - f_left) / dx;
     }
+
     /**
-     * @brief Проверяет дифференцируемость в смысле определения 3.4,
-     *        обобщённого с использованием модуля сходимости.
+     * @brief Check differentiability at a point using a modulus of convergence.
      *
-     * Для всех уровней n >= first_level проверяется:
-     *   |Δ⁻ₙf(x) - D| ≤ modulus(δ_n) + tolerance,
-     *   |Δ⁺ₙf(x) - D| ≤ modulus(δ_n) + tolerance.
+     * For all refinement levels n >= first_level, verifies that both the left and right
+     * difference quotients differ from the expected derivative D by at most
+     * modulus(δ_n) + tolerance, where δ_n is the maximum gap of the grid at level n.
      *
-     * @tparam Grid тип сетки
-     * @tparam Func тип функции
-     * @tparam Distance тип расстояния (должен поддерживать convert_to<double> и арифметику)
-     * @tparam Addr тип адреса
-     * @tparam Mod тип модуля (Modulus<Distance>)
-     * @param grids вектор сеток последовательных уровней
-     * @param addr адрес для проверки
-     * @param func функция
-     * @param D ожидаемая производная
-     * @param modulus модуль сходимости (вызывается с максимальным шагом уровня)
-     * @param first_level уровень, на котором адрес впервые появляется
-     * @param tolerance допуск
-     * @return true, если условие выполнено
+     * This implements a generalised version of Definition 3.4 from the Δ‑analysis theory.
+     *
+     * @tparam Grid    A type satisfying GridConcept; its value_type must be SubtractableAddress.
+     * @tparam Func    Callable with signature Value(const Addr&).
+     * @tparam Distance Scalar type for distances (must support convert_to<double> and arithmetic).
+     * @tparam Addr    Address type (must be SubtractableAddress).
+     * @tparam Mod     Modulus type (must satisfy Modulus<Mod, Distance>).
+     * @param grids      Vector of grids for successive refinement levels.
+     * @param addr       The address to test (must be interior from first_level onward).
+     * @param func       The function.
+     * @param D          Expected derivative value.
+     * @param modulus    Modulus of convergence (called with the maximum gap of each grid).
+     * @param first_level The first level at which addr appears (inclusive).
+     * @param tolerance  Additional tolerance for floating‑point comparisons (default 1e-12).
+     * @return true if the differentiability condition holds for all levels n >= first_level.
      */
     template<typename Grid, typename Func, typename Distance, typename Addr, typename Mod>
-        requires SubtractableAddress<Addr>   // <-- добавлено
+        requires SubtractableAddress<Addr>
     bool check_differentiability(const std::vector<Grid>& grids, const Addr& addr,
         Func&& func, const Distance& D, const Mod& modulus,
         std::size_t first_level, double tolerance = 1e-12) {
@@ -95,9 +123,9 @@ namespace delta::calculus {
             auto right_dq = right_difference_quotient(grid, addr, func);
 
             Distance delta_n = max_gap(grid);
-            Distance bound = modulus(delta_n); // модуль должен возвращать Distance
+            Distance bound = modulus(delta_n);   // modulus must return a Distance
 
-            // Преобразуем в double для сравнения с допуском
+            // Convert to double for tolerance comparison
             double left_error = std::abs((left_dq - D).template convert_to<double>());
             double right_error = std::abs((right_dq - D).template convert_to<double>());
             double bound_d = bound.template convert_to<double>();

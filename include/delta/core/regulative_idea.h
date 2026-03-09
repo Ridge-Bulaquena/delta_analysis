@@ -9,38 +9,95 @@
 namespace delta {
 
     // -----------------------------------------------------------------------------
-    // Concepts for addresses (общие требования)
+    // Address concepts
     // -----------------------------------------------------------------------------
+
+    /**
+     * @concept Address
+     * @brief The most basic requirement for an address type.
+     *
+     * An address must be copyable and equality comparable.
+     * This is the foundation for all regulative ideas.
+     */
     template<typename T>
     concept Address = std::copyable<T> && std::equality_comparable<T>;
 
+    /**
+     * @concept SubtractableAddress
+     * @brief Extends Address with subtraction.
+     *
+     * Addresses that support subtraction (difference) are needed for grids
+     * where gaps are computed as `a - b`. The result must be convertible to the address type.
+     */
     template<typename T>
     concept SubtractableAddress = Address<T> && requires(T a, T b) {
         { a - b } -> std::convertible_to<T>;
     };
 
+    /**
+     * @concept AddableAddress
+     * @brief Extends Address with addition.
+     *
+     * Required for linear combinations and scaling.
+     */
     template<typename T>
     concept AddableAddress = Address<T> && requires(T a, T b) {
         { a + b } -> std::convertible_to<T>;
     };
 
+    /**
+     * @concept ScalableAddress
+     * @brief Extends AddableAddress with scalar multiplication.
+     *
+     * @tparam T The address type.
+     * @tparam Scalar The scalar type (e.g., Rational, double).
+     *
+     * The expression `s * a` must produce a value convertible to `T`.
+     */
     template<typename T, typename Scalar>
     concept ScalableAddress = AddableAddress<T> && requires(T a, Scalar s) {
         { s* a } -> std::convertible_to<T>;
     };
 
+    /**
+     * @concept LinearAddress
+     * @brief Combines addition and scalar multiplication.
+     *
+     * This is the typical concept for addresses that behave like vectors over a scalar field.
+     * The default scalar type is `Rational`.
+     */
     template<typename T, typename Scalar = Rational>
     concept LinearAddress = AddableAddress<T> && ScalableAddress<T, Scalar>;
 
     // -----------------------------------------------------------------------------
-    // Concepts for betweenness relations and metrics
+    // Betweenness and metric concepts
     // -----------------------------------------------------------------------------
 
+    /**
+     * @concept Betweenness
+     * @brief A ternary relation indicating that one address lies between two others.
+     *
+     * @tparam B The betweenness functor type.
+     * @tparam Addr The address type.
+     *
+     * The expression `b(x, y, z)` must return a value convertible to `bool`.
+     * Typical semantics: returns `true` iff `y` is between `x` and `z` according to the regulative idea.
+     */
     template<typename B, typename Addr>
     concept Betweenness = requires(B b, const Addr & x, const Addr & y, const Addr & z) {
         { b(x, y, z) } -> std::convertible_to<bool>;
     };
 
+    /**
+     * @concept Metric
+     * @brief A metric (distance function) on addresses.
+     *
+     * @tparam M The metric functor type.
+     * @tparam Addr The address type.
+     *
+     * The expression `m(a, b)` must return a value that models `std::regular` (i.e., copyable, default constructible, equality comparable).
+     * Typically the return type is a scalar like `Rational` or `double`.
+     */
     template<typename M, typename Addr>
     concept Metric = requires(M m, const Addr & a, const Addr & b) {
         { m(a, b) } -> std::regular;
@@ -50,6 +107,17 @@ namespace delta {
     // Core regulative idea structure
     // -----------------------------------------------------------------------------
 
+    /**
+     * @struct RegulativeIdea
+     * @brief Bundles a betweenness relation and a metric into a regulative idea.
+     *
+     * A regulative idea defines the geometric structure on the address space:
+     * how points are ordered (betweenness) and how distances are measured (metric).
+     *
+     * @tparam Addr The address type.
+     * @tparam B    The betweenness functor type (must satisfy Betweenness<B, Addr>).
+     * @tparam M    The metric functor type (must satisfy Metric<M, Addr>).
+     */
     template<typename Addr, typename B, typename M>
         requires Betweenness<B, Addr>&& Metric<M, Addr>
     struct RegulativeIdea {
@@ -57,8 +125,8 @@ namespace delta {
         using betweenness_type = B;
         using metric_type = M;
 
-        B betweenness;
-        M metric;
+        B betweenness;   ///< The betweenness relation.
+        M metric;        ///< The metric.
 
         RegulativeIdea() = default;
         RegulativeIdea(const B& b, const M& m) : betweenness(b), metric(m) {}
@@ -68,6 +136,12 @@ namespace delta {
     // Classical instances for linear order and Euclidean metric
     // -----------------------------------------------------------------------------
 
+    /**
+     * @struct LessBetweenness
+     * @brief Betweenness for a strict total order: `x < y && y < z`.
+     *
+     * Works for any type that supports `operator<`.
+     */
     struct LessBetweenness {
         template<typename T>
         bool operator()(const T& x, const T& y, const T& z) const {
@@ -76,6 +150,12 @@ namespace delta {
     };
     static_assert(Betweenness<LessBetweenness, int>);
 
+    /**
+     * @struct EuclideanMetric
+     * @brief Euclidean (absolute) distance: `|a - b|`.
+     *
+     * Uses `std::abs` and works for arithmetic types.
+     */
     struct EuclideanMetric {
         template<typename T>
         auto operator()(const T& a, const T& b) const {
@@ -84,6 +164,14 @@ namespace delta {
         }
     };
     static_assert(Metric<EuclideanMetric, int>);
+
+    /**
+     * @struct LinearBetweenness
+     * @brief Betweenness for a linear order that is not necessarily directed.
+     *
+     * Returns `true` if `y` lies between `x` and `z` in the usual sense,
+     * i.e., either `x < y < z` or `z < y < x`. Requires `std::totally_ordered<T>`.
+     */
     template<typename T>
     struct LinearBetweenness {
         bool operator()(const T& x, const T& y, const T& z) const {
@@ -96,6 +184,13 @@ namespace delta {
         }
     };
 
+    /**
+     * @struct TreeBetweenness
+     * @brief Betweenness for binary tree addresses (strings of '0' and '1').
+     *
+     * `y` is between `x` and `z` if it is a common ancestor (lowest common ancestor)
+     * or if it lies on the path from one node to the other.
+     */
     struct TreeBetweenness {
         bool operator()(const std::string& x, const std::string& y, const std::string& z) const {
             size_t lcp_xz = 0;
@@ -114,12 +209,25 @@ namespace delta {
     // Metrics
     // -----------------------------------------------------------------------------
 
+    /**
+     * @struct FrobeniusMetric
+     * @brief Frobenius norm of the difference of two matrices.
+     *
+     * Works with `Eigen::MatrixXd`.
+     */
     struct FrobeniusMetric {
         double operator()(const Eigen::MatrixXd& a, const Eigen::MatrixXd& b) const {
             return (a - b).norm();
         }
     };
 
+    /**
+     * @struct StringUltrametric
+     * @brief Ultrametric on binary strings: distance = 2^{-length of common prefix}.
+     *
+     * If the strings are equal, distance is 0. Otherwise it is 2^{-k} where k is
+     * the length of the longest common prefix.
+     */
     struct StringUltrametric {
         double operator()(const std::string& a, const std::string& b) const {
             if (a == b) return 0.0;
@@ -129,6 +237,18 @@ namespace delta {
         }
     };
 
+    /**
+     * @struct PAdicMetric
+     * @brief p‑adic metric on rational numbers.
+     *
+     * The distance is defined as |a - b|_p = p^{-v}, where v is the exponent of p
+     * in the factorisation of the difference (v can be negative if the denominator contains p).
+     *
+     * @tparam p A prime number (must be >= 2).
+     *
+     * @note The current implementation uses `%` which may not compile for boost::multiprecision types.
+     *       A future version should use valuations of numerator and denominator.
+     */
     template<int p>
     struct PAdicMetric {
         static_assert(p >= 2, "p must be a prime");
@@ -145,6 +265,10 @@ namespace delta {
         }
     };
 
+    /**
+     * @struct DiscreteMetric
+     * @brief Discrete metric: 0 if equal, 1 otherwise.
+     */
     struct DiscreteMetric {
         template<typename T>
         double operator()(const T& a, const T& b) const {
@@ -152,7 +276,7 @@ namespace delta {
         }
     };
 
-    // Статические проверки
+    // Compile‑time checks that the provided types satisfy the required concepts.
     static_assert(Betweenness<TreeBetweenness, std::string>);
     static_assert(Metric<FrobeniusMetric, Eigen::MatrixXd>);
     static_assert(Metric<StringUltrametric, std::string>);

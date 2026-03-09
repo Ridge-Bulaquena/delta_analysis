@@ -9,8 +9,25 @@
 namespace delta {
 
     // -----------------------------------------------------------------------------
-    // Concept DeltaOperator
+    // DeltaOperator concept
     // -----------------------------------------------------------------------------
+
+    /**
+     * @concept DeltaOperator
+     * @brief Requirements for a delta operator that refines an interval.
+     *
+     * A delta operator takes the left and right endpoints of an interval,
+     * together with contextual information (IntervalInfo), and returns a new
+     * address that lies strictly between them (according to the betweenness relation).
+     *
+     * @tparam Op           The candidate operator type.
+     * @tparam Addr         Address type.
+     * @tparam Value        Function value type.
+     * @tparam Distance     Scalar type for distances.
+     * @tparam Betweenness  Betweenness relation type.
+     * @tparam Metric       Address metric type.
+     * @tparam ValueMetric  Value metric type.
+     */
     template<typename Op, typename Addr, typename Value, typename Distance,
         typename Betweenness, typename Metric, typename ValueMetric>
     concept DeltaOperator = requires(Op op,
@@ -21,9 +38,16 @@ namespace delta {
     };
 
     // -----------------------------------------------------------------------------
-    // Common predefined operators (as function objects)
+    // Common predefined operators
     // -----------------------------------------------------------------------------
 
+    /**
+     * @struct MidpointOperator
+     * @brief Delta operator that always returns the arithmetic midpoint.
+     *
+     * This operator ignores all contextual information and simply returns
+     * (left + right) / 2. It requires that Addr satisfies LinearAddress.
+     */
     struct MidpointOperator {
         template<typename Addr, typename Value, typename Distance,
             typename Betweenness, typename Metric, typename ValueMetric>
@@ -35,8 +59,21 @@ namespace delta {
         }
     };
 
+    /**
+     * @class FixedLambdaOperator
+     * @brief Delta operator that places a new point at a fixed fraction λ of the interval.
+     *
+     * The new point is computed as left + λ·(right - left). If the computed point
+     * lies outside the open interval (due to numerical issues), it falls back to the midpoint
+     * and (in debug mode) prints a warning.
+     *
+     * @note Requires Addr to be LinearAddress with scalar type Rational.
+     */
     class FixedLambdaOperator {
     public:
+        /**
+         * @param lambda Fixed fraction; must be in (0,1) for meaningful results.
+         */
         explicit FixedLambdaOperator(const Rational& lambda) : lambda_(lambda) {}
 
         template<typename Addr, typename Value, typename Distance,
@@ -55,13 +92,25 @@ namespace delta {
             }
             return mid;
         }
+
     private:
-        Rational lambda_;
+        Rational lambda_;   ///< Fixed fraction.
     };
 
-
+    /**
+     * @class DynamicLambdaOperator
+     * @brief Delta operator where the fraction λ depends on the refinement level.
+     *
+     * The fraction is obtained from a user‑provided function λ = f(level).
+     * If the computed point lies outside the interval, it falls back to the midpoint.
+     *
+     * @note Requires Addr to be LinearAddress with scalar type double.
+     */
     class DynamicLambdaOperator {
     public:
+        /**
+         * @param lambda_gen Function that takes a level (std::size_t) and returns a double λ.
+         */
         explicit DynamicLambdaOperator(std::function<double(std::size_t)> lambda_gen)
             : lambda_gen_(std::move(lambda_gen)) {
         }
@@ -82,12 +131,31 @@ namespace delta {
             }
             return mid;
         }
+
     private:
-        std::function<double(std::size_t)> lambda_gen_;
+        std::function<double(std::size_t)> lambda_gen_;   ///< Level‑dependent fraction generator.
     };
 
+    /**
+     * @class AdaptiveOperator
+     * @brief Delta operator that adaptively places points based on function variation.
+     *
+     * The point is chosen as left + α·(right - left), where α is computed from the
+     * ratio of the variation on the current interval to the global maximum oscillation.
+     * This clusters points in regions where the function changes rapidly.
+     *
+     * - If max_oscillation == 0, returns the midpoint.
+     * - If df (|f(right)-f(left)|) ≤ threshold, returns the midpoint.
+     * - Otherwise α = df / max_oscillation, clamped to [epsilon, 1‑epsilon].
+     *
+     * @tparam Addr must satisfy LinearAddress<Addr, Distance> (Distance is the scalar type).
+     */
     class AdaptiveOperator {
     public:
+        /**
+         * @param threshold  If |f(right)-f(left)| ≤ threshold, use midpoint.
+         * @param epsilon    Lower and upper clamp for α (ensures α ∈ [epsilon, 1‑epsilon]).
+         */
         AdaptiveOperator(const Rational& threshold, const Rational& epsilon)
             : threshold_(threshold), epsilon_(epsilon) {
         }
@@ -117,14 +185,22 @@ namespace delta {
             }
             return mid;
         }
+
     private:
-        Rational threshold_;
-        Rational epsilon_;
+        Rational threshold_;   ///< Variation threshold.
+        Rational epsilon_;     ///< Clamping factor.
     };
 
     // -----------------------------------------------------------------------------
-    // Operators for non-linear regulative ideas (stubs)
+    // Operators for non‑linear regulative ideas (stubs / specialisations)
     // -----------------------------------------------------------------------------
+
+    /**
+     * @struct MatrixMidpointOperator
+     * @brief Midpoint operator for matrix addresses (Eigen::MatrixXd).
+     *
+     * Returns (left + right) * 0.5. Requires Addr = Eigen::MatrixXd.
+     */
     struct MatrixMidpointOperator {
         template<typename Addr, typename Value, typename Distance,
             typename Betweenness, typename Metric, typename ValueMetric>
@@ -136,6 +212,12 @@ namespace delta {
         }
     };
 
+    /**
+     * @struct TreeMidpointOperator
+     * @brief Placeholder for a midpoint operator on tree addresses.
+     *
+     * @note Not implemented – triggers a static_assert if instantiated.
+     */
     struct TreeMidpointOperator {
         template<typename Addr, typename Value, typename Distance,
             typename Betweenness, typename Metric, typename ValueMetric>
@@ -147,6 +229,15 @@ namespace delta {
         }
     };
 
+    /**
+     * @struct PAdicMidpointOperator
+     * @brief Midpoint operator for p‑adic rational addresses.
+     *
+     * For Rational addresses, simply returns the arithmetic midpoint (left + right)/2.
+     * The p‑adic metric does not affect the choice of the point.
+     *
+     * @tparam p The prime (unused, kept for consistency).
+     */
     template<int p>
     struct PAdicMidpointOperator {
         template<typename Addr, typename Value, typename Distance,

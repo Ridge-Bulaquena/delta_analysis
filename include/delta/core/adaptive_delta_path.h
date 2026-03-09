@@ -33,8 +33,8 @@ namespace delta {
      * @tparam Betweenness  Betweenness relation type.
      * @tparam Metric       Metric on addresses.
      * @tparam ValueMetric  Metric on function values.
-     * @tparam Operator     Delta operator type.
-     * @tparam Compare      Comparison functor for ordering addresses.
+     * @tparam Operator     Delta operator type (must satisfy DeltaOperator concept).
+     * @tparam Compare      Comparison functor for ordering addresses (default std::less<Addr>).
      */
     template<typename Addr, typename Value, typename Distance,
         typename Betweenness, typename Metric, typename ValueMetric,
@@ -54,6 +54,8 @@ namespace delta {
          * @param betweenness     Betweenness relation.
          * @param metric          Address metric.
          * @param value_metric    Value metric.
+         *
+         * @throws std::invalid_argument if threshold ≤ 0.
          */
         AdaptiveDeltaPath(const std::vector<Addr>& initial_points,
             Func func,
@@ -93,6 +95,8 @@ namespace delta {
          * @param metric          Address metric.
          * @param value_metric    Value metric.
          * @return AdaptiveDeltaPath initialized with the uniformly refined grid.
+         *
+         * @throws std::invalid_argument if threshold ≤ 0.
          */
         static AdaptiveDeltaPath from_uniform(const std::vector<Addr>& initial_points,
             Func func,
@@ -232,7 +236,11 @@ namespace delta {
     private:
         /**
          * @brief Rebuild the priority queue from the current point set.
-         * Also updates the cached midpoint values for all intervals.
+         *
+         * Iterates over all consecutive pairs in points_, computes the midpoint using the operator,
+         * evaluates the function at the midpoint, computes the priority (deviation from linearity),
+         * and pushes intervals with priority > threshold into the queue.
+         * Also updates max_oscillation_ at the end.
          */
         void rebuild_queue() {
             // Clear existing queue
@@ -296,7 +304,12 @@ namespace delta {
             update_max_oscillation();
         }
 
-        /// Recalculates the maximum oscillation over all consecutive points.
+        /**
+         * @brief Recalculate the maximum oscillation over all consecutive points.
+         *
+         * Iterates through points_ and updates max_oscillation_ as the maximum
+         * value_metric_ difference between values at consecutive addresses.
+         */
         void update_max_oscillation() {
             max_oscillation_ = Distance{ 0 };
             auto it = points_.begin();
@@ -310,33 +323,34 @@ namespace delta {
             }
         }
 
+        /// @brief Represents an interval with its endpoints, midpoint, function values and priority.
         struct Interval {
-            Addr left;
-            Addr right;
-            Addr mid;           // pre‑computed midpoint
-            Value f_left;
-            Value f_right;
-            Value f_mid;        // value at midpoint
-            Distance priority;   // combined priority (total variation + deviation from linearity)
-            std::size_t level;   // level at which this interval was created
+            Addr left;      ///< Left endpoint.
+            Addr right;     ///< Right endpoint.
+            Addr mid;       ///< Pre‑computed midpoint.
+            Value f_left;   ///< Value at left endpoint.
+            Value f_right;  ///< Value at right endpoint.
+            Value f_mid;    ///< Value at midpoint.
+            Distance priority; ///< Priority (deviation from linearity) – higher means more urgent.
+            std::size_t level; ///< Level at which this interval was created.
 
+            /// Comparison for priority queue (largest priority first).
             bool operator<(const Interval& other) const {
-                // Priority queue returns largest first, so we invert the comparison.
                 return priority < other.priority;
             }
         };
 
-        boost::container::flat_set<Addr, Compare> points_;          // all addresses in the path
-        boost::container::flat_map<Addr, Value, Compare> values_;  // cached function values
-        std::priority_queue<Interval> queue_;
-        Func func_;
-        Operator op_;
-        Distance threshold_;
-        Betweenness betweenness_;
-        [[maybe_unused]] Metric metric_;
-        ValueMetric value_metric_;
-        Distance max_oscillation_;
-        std::size_t level_;     // number of refinement steps performed
+        boost::container::flat_set<Addr, Compare> points_;   ///< All addresses in the path (sorted).
+        boost::container::flat_map<Addr, Value, Compare> values_; ///< Cached function values.
+        std::priority_queue<Interval> queue_;                ///< Priority queue of intervals to refine.
+        Func func_;                                          ///< Function being approximated.
+        Operator op_;                                        ///< Delta operator.
+        Distance threshold_;                                 ///< Priority threshold.
+        Betweenness betweenness_;                            ///< Betweenness relation.
+        [[maybe_unused]] Metric metric_;                     ///< Address metric (may be unused).
+        ValueMetric value_metric_;                           ///< Value metric.
+        Distance max_oscillation_;                           ///< Current maximum oscillation.
+        std::size_t level_;                                  ///< Number of refinement steps performed.
     };
 
 } // namespace delta

@@ -14,7 +14,6 @@ namespace delta {
      *
      * The order is determined by a comparator (default std::less), which must be
      * consistent with the betweenness relation of the regulative idea.
-     *
      * @tparam T Address type.
      * @tparam Compare Comparison functor (strict weak ordering).
      */
@@ -109,6 +108,9 @@ namespace delta {
             return Grid(std::move(next), comp_);
         }
 
+        /**
+         * @brief Equality comparison (compares underlying data).
+         */
         bool operator==(const Grid& other) const noexcept {
             return data_ == other.data_;
         }
@@ -117,7 +119,14 @@ namespace delta {
         std::vector<T> data_;
         Compare comp_;
 
-        // Private constructor for internal use (already sorted)
+        /**
+         * @brief Private constructor that assumes the vector is already sorted.
+         * @param vec Sorted vector of addresses.
+         * @param comp Comparator.
+         * @param trusted Unused tag to distinguish from public constructors.
+         *
+         * Used internally by refine() to avoid re‑checking sortedness.
+         */
         Grid(std::vector<T>&& vec, Compare comp, bool /*trusted*/)
             : data_(std::move(vec)), comp_(std::move(comp)) {
         }

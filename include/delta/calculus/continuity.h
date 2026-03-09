@@ -9,15 +9,19 @@
 namespace delta::calculus {
 
     /**
-     * @brief Вычисляет максимальную осцилляцию (максимальное расстояние между значениями на соседних адресах) на заданной сетке.
+     * @brief Compute the maximum oscillation of a function on a grid.
      *
-     * @tparam Grid тип сетки (должен предоставлять begin/end и operator[])
-     * @tparam Func тип функции, вызываемой с адресом и возвращающей значение
-     * @tparam ValueMetric тип метрики на значениях (должен быть вызываем с двумя значениями, возвращать расстояние)
-     * @param grid сетка
-     * @param func функция, отображающая адрес в значение
-     * @param vm метрика значений
-     * @return максимальное расстояние между значениями на соседних точках сетки
+     * The oscillation is defined as the maximum distance between values at consecutive
+     * addresses, measured by the given value metric.
+     *
+     * @tparam Grid        A type satisfying GridConcept (must provide size() and operator[]).
+     * @tparam Func        Callable with signature Value(const Addr&).
+     * @tparam ValueMetric A metric on values (must satisfy ValueMetric<ValueMetric, Value, Distance>).
+     * @param grid The grid over which to compute the oscillation.
+     * @param func The function.
+     * @param vm   The value metric.
+     * @return The maximum distance between f(x_i) and f(x_{i+1}) over all consecutive pairs.
+     *         Returns a default‑constructed Distance (zero) if grid.size() < 2.
      */
     template<typename Grid, typename Func, typename ValueMetric>
     auto max_oscillation(const Grid& grid, Func&& func, const ValueMetric& vm) {
@@ -32,23 +36,27 @@ namespace delta::calculus {
         }
         return max_dist;
     }
+
     /**
-        * @brief Проверяет выполнение условия непрерывности (обобщённое определение 7.5.2)
-        *
-        * Для всех соседних адресов проверяется |f(x_{i+1}) - f(x_i)| ≤ modulus(δ_n) + tolerance,
-        * где δ_n — максимальный шаг сетки.
-        *
-        * @tparam Grid тип сетки
-        * @tparam Func тип функции
-        * @tparam ValueMetric тип метрики значений
-        * @tparam Mod тип модуля (должен удовлетворять концепту Modulus<Distance>)
-        * @param grid сетка
-        * @param func функция
-        * @param vm метрика значений
-        * @param modulus модуль непрерывности, вызываемый с максимальным шагом сетки
-        * @param tolerance допуск для сравнения с плавающей точкой
-        * @return true, если условие выполнено
-        */
+     * @brief Check whether a function satisfies a given modulus of continuity on a grid.
+     *
+     * For all consecutive addresses x_i, x_{i+1} in the grid, verifies that
+     *   vm(f(x_{i+1}), f(x_i)) ≤ modulus(δ) + tolerance,
+     * where δ is the maximum gap of the grid (max_gap(grid)).
+     *
+     * This is a generalised version of Definition 7.5.2 from the Δ‑analysis theory.
+     *
+     * @tparam Grid        A type satisfying GridConcept.
+     * @tparam Func        Callable with signature Value(const Addr&).
+     * @tparam ValueMetric A metric on values.
+     * @tparam Mod         A modulus type (must satisfy Modulus<Mod, Distance>).
+     * @param grid      The grid.
+     * @param func      The function.
+     * @param vm        The value metric.
+     * @param modulus   The modulus of continuity (callable with the maximum gap).
+     * @param tolerance Additional tolerance for floating‑point comparisons (default 0.0).
+     * @return true if the inequality holds for every consecutive pair.
+     */
     template<typename Grid, typename Func, typename ValueMetric, typename Mod>
     bool check_continuity_level(const Grid& grid, Func&& func, const ValueMetric& vm,
         const Mod& modulus, double tolerance = 0.0) {

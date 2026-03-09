@@ -22,16 +22,19 @@ namespace delta {
     template<typename Addr, typename Value, typename Distance,
         typename Betweenness, typename Metric, typename ValueMetric>
     struct IntervalInfo {
-        const Addr& left;
-        const Addr& right;
-        std::size_t level;
-        const Value& f_left;
-        const Value& f_right;
-        Distance max_oscillation;               // maximum oscillation on current level (scalar)
-        const Betweenness& betweenness;
-        const Metric& metric;
-        const ValueMetric& value_metric;
+        const Addr& left;          ///< Left endpoint of the interval.
+        const Addr& right;         ///< Right endpoint of the interval.
+        std::size_t level;         ///< Current refinement level.
+        const Value& f_left;       ///< Function value at left endpoint.
+        const Value& f_right;      ///< Function value at right endpoint.
+        Distance max_oscillation;  ///< Maximum oscillation (max |f(x_i+1)-f(x_i)|) on current level.
+        const Betweenness& betweenness;   ///< Betweenness relation from regulative idea.
+        const Metric& metric;              ///< Address metric from regulative idea.
+        const ValueMetric& value_metric;   ///< Metric on function values.
 
+        /**
+         * @brief Constructor initialising all members.
+         */
         IntervalInfo(const Addr& l, const Addr& r, std::size_t lvl,
             const Value& fl, const Value& fr, const Distance& max_osc,
             const Betweenness& b, const Metric& m, const ValueMetric& vm)

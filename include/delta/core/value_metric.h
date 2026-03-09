@@ -3,35 +3,75 @@
 
 #include <concepts>
 #include <Eigen/Dense>
-#include "rational.h"  // для определения Rational и включения нужных заголовков boost
+#include "rational.h"
 
 namespace delta {
 
+    /**
+     * @concept ValueMetric
+     * @brief Concept for a metric on function values.
+     *
+     * A ValueMetric must be callable as `vm(a, b)` and return a type convertible to `Distance`.
+     * It is used to measure the distance (or difference) between two function values,
+     * for example in continuity and differentiability checks.
+     *
+     * @tparam VM The candidate metric type.
+     * @tparam Value The value type of the function.
+     * @tparam Distance The scalar type representing distances.
+     */
     template<typename VM, typename Value, typename Distance>
     concept ValueMetric = requires(VM vm, const Value & a, const Value & b) {
         { vm(a, b) } -> std::convertible_to<Distance>;
     };
 
+    /**
+     * @struct EuclideanValueMetric
+     * @brief A metric that computes the Euclidean (absolute) distance between two values.
+     *
+     * This metric works for:
+     * - Arithmetic types (int, double, etc.) via std::abs.
+     * - Rational (boost::multiprecision number) via boost::multiprecision::abs.
+     * - Eigen::MatrixXd via the Frobenius norm.
+     *
+     * The returned type is the same as the result of the absolute operation for the given type.
+     */
     struct EuclideanValueMetric {
-        // Общий шаблон для арифметических типов (int, double, ...)
+        /**
+         * @brief General overload for arithmetic types.
+         * @tparam T An arithmetic type (int, double, etc.).
+         * @param a First value.
+         * @param b Second value.
+         * @return |a - b| using std::abs.
+         */
         template<typename T>
         auto operator()(const T& a, const T& b) const -> decltype(std::abs(a - b)) {
             using std::abs;
             return abs(a - b);
         }
 
-        // Специализация для Rational (boost::multiprecision number)
+        /**
+         * @brief Specialisation for Rational (boost::multiprecision).
+         * @param a First rational.
+         * @param b Second rational.
+         * @return |a - b| using boost::multiprecision::abs.
+         */
         auto operator()(const Rational& a, const Rational& b) const {
-            using boost::multiprecision::abs;  // или через ADL, но явное using для верности
+            using boost::multiprecision::abs;
             return abs(a - b);
         }
 
-        // Специализация для Eigen::MatrixXd
+        /**
+         * @brief Specialisation for Eigen::MatrixXd.
+         * @param a First matrix.
+         * @param b Second matrix.
+         * @return Frobenius norm of (a - b).
+         */
         double operator()(const Eigen::MatrixXd& a, const Eigen::MatrixXd& b) const {
-            return (a - b).norm(); // норма Фробениуса
+            return (a - b).norm(); // Frobenius norm
         }
     };
 
+    // Verify that EuclideanValueMetric satisfies the ValueMetric concept for double.
     static_assert(ValueMetric<EuclideanValueMetric, double, double>);
 
 } // namespace delta

@@ -8,23 +8,29 @@
 #include <cmath>
 #include "rational.h"
 
-namespace delta{
+namespace delta {
 
     /**
-     * @brief Фундаментальная последовательность с экспоненциальной скоростью сходимости.
+     * @class FundamentalSequence
+     * @brief Represents a fundamental (Cauchy) sequence with exponential convergence rate.
      *
-     * Представляет последовательность {x_n}, для которой |x_m - x_n| ≤ C·r^{min(m,n)}
-     * для некоторых рациональных C>0, 0<r<1.
+     * A fundamental sequence {x_n} is defined for n ≥ start_level and satisfies
+     * |x_m - x_n| ≤ C·r^{min(m,n)} for some rational C > 0 and 0 < r < 1.
+     * Such sequences are used to construct real numbers via completion.
      */
     class FundamentalSequence {
     public:
         using value_type = Rational;
 
         /**
-         * @param generator функция, возвращающая x_n для заданного n (начиная с start_level)
-         * @param C константа C (максимальная ошибка)
-         * @param r константа r (0<r<1)
-         * @param start_level уровень, с которого определена последовательность
+         * @brief Construct a fundamental sequence.
+         *
+         * @param generator   Function that returns x_n for a given n (starting from start_level).
+         * @param C           Constant C (bound on the initial error).
+         * @param r           Rate r (must satisfy 0 < r < 1).
+         * @param start_level The first level for which the sequence is defined.
+         *
+         * @throws std::invalid_argument if r is not in (0,1).
          */
         FundamentalSequence(std::function<value_type(std::size_t)> generator,
             Rational C, Rational r, std::size_t start_level = 0)
@@ -34,7 +40,13 @@ namespace delta{
             }
         }
 
-        /** Получить элемент последовательности на уровне n */
+        /**
+         * @brief Access the element at level n.
+         *
+         * @param n Level (must be ≥ start_level).
+         * @return x_n.
+         * @throws std::out_of_range if n < start_level.
+         */
         value_type operator()(std::size_t n) const {
             if (n < start_) {
                 throw std::out_of_range("Level " + std::to_string(n) + " below start level " + std::to_string(start_));
@@ -42,58 +54,67 @@ namespace delta{
             return gen_(n);
         }
 
+        /// Returns the constant C (error bound factor).
         Rational bound() const { return C_; }
+
+        /// Returns the rate r (convergence factor).
         Rational rate() const { return r_; }
+
+        /// Returns the first level at which the sequence is defined.
         std::size_t start_level() const { return start_; }
 
     private:
-        std::function<value_type(std::size_t)> gen_;
-        Rational C_, r_;
-        std::size_t start_;
+        std::function<value_type(std::size_t)> gen_;   ///< Generator function.
+        Rational C_;                                    ///< Error bound constant.
+        Rational r_;                                    ///< Convergence rate.
+        std::size_t start_;                             ///< First defined level.
     };
 
     /**
-     * @brief Проверяет эквивалентность двух фундаментальных последовательностей.
+     * @brief Check whether two fundamental sequences are equivalent.
      *
-     * Две последовательности {x_n} и {y_n} эквивалентны, если существует
-     * константа K>0 и 0<ρ<1 такие, что |x_n - y_n| ≤ K·ρ^n для всех n.
-     * Для проверки используется максимальный уровень из двух последовательностей.
+     * Two sequences {x_n} and {y_n} are equivalent if there exist constants K > 0
+     * and 0 < ρ < 1 such that |x_n - y_n| ≤ K·ρ^n for all n.
      *
-     * @param seq1 первая последовательность
-     * @param seq2 вторая последовательность
-     * @param K константа K (возвращается)
-     * @param rho константа ρ (возвращается)
-     * @return true, если последовательности эквивалентны
+     * This function estimates K and ρ and verifies the condition for a range of levels.
+     *
+     * @param seq1 First sequence.
+     * @param seq2 Second sequence.
+     * @param K    Output parameter: estimated constant K.
+     * @param rho  Output parameter: estimated rate ρ (chosen as max(r1, r2)).
+     * @return true if the sequences appear to be equivalent within a small tolerance.
      */
     static inline bool are_equivalent(const FundamentalSequence& seq1, const FundamentalSequence& seq2,
         Rational& K, Rational& rho) {
-        // Начинаем с максимального из стартовых уровней
+        // Start at the maximum of the two start levels.
         std::size_t start = std::max(seq1.start_level(), seq2.start_level());
-        // Выбираем ρ = max(r1, r2) + небольшой запас, но для простоты возьмём max(r1, r2)
+        // Choose ρ as the larger of the two rates (simplistic but sufficient for tests).
         rho = std::max(seq1.rate(), seq2.rate());
-        // Оцениваем K как максимальное из |x_n - y_n| / ρ^n для нескольких первых n
-        // (на практике можно взять достаточно большое N)
-        const std::size_t N = 20; // проверяем до уровня start+N
+
+        // Estimate K as the maximum of |x_n - y_n| / ρ^n over the first N levels after start.
+        const std::size_t N = 20;   // number of levels to estimate K
         Rational maxK = 0;
         for (std::size_t i = 0; i < N; ++i) {
             std::size_t n = start + i;
             Rational diff = seq1(n) - seq2(n);
             if (diff < 0) diff = -diff;
             Rational factor = 1;
-            for (std::size_t j = 0; j < i; ++j) factor = factor * rho; // ρ^i
-            if (factor == 0) break; // защита от деления на ноль
+            for (std::size_t j = 0; j < i; ++j) factor = factor * rho;   // ρ^i
+            if (factor == 0) break;   // avoid division by zero (should not happen with ρ>0)
             Rational Ki = diff / factor;
             if (Ki > maxK) maxK = Ki;
         }
         K = maxK;
-        // Проверяем для нескольких последующих уровней (можно увеличить)
+
+        // Verify the condition for the next N levels (start+N … start+2N-1).
         for (std::size_t i = N; i < 2 * N; ++i) {
             std::size_t n = start + i;
             Rational diff = seq1(n) - seq2(n);
             if (diff < 0) diff = -diff;
             Rational factor = 1;
             for (std::size_t j = 0; j < i; ++j) factor = factor * rho;
-            if (diff > K * factor + Rational(1, 1000000)) { // допуск
+            // Allow a tiny tolerance to account for rounding.
+            if (diff > K * factor + Rational(1, 1000000)) {
                 return false;
             }
         }
@@ -101,7 +122,13 @@ namespace delta{
     }
 
     /**
-     * @brief Упрощённая проверка эквивалентности для тестов (без вычисления K,rho).
+     * @brief Simplified equivalence test for two fundamental sequences.
+     *
+     * Calls the three‑argument version and discards the estimated constants.
+     *
+     * @param seq1 First sequence.
+     * @param seq2 Second sequence.
+     * @return true if the sequences are equivalent.
      */
     static inline bool are_equivalent(const FundamentalSequence& seq1, const FundamentalSequence& seq2) {
         Rational K, rho;
@@ -109,38 +136,61 @@ namespace delta{
     }
 
     /**
-     * @brief Вещественное число как класс эквивалентности фундаментальных последовательностей.
+     * @class RealNumber
+     * @brief A real number represented as an equivalence class of fundamental sequences.
      *
-     * Предоставляет минимальный интерфейс для демонстрации инвариантности.
+     * This class demonstrates the completion of rationals to reals.
+     * It provides equality via sequence equivalence and approximate comparison
+     * with a given tolerance.
      */
     class RealNumber {
     public:
         using value_type = Rational;
 
-        // Конструктор из рационального числа (постоянная последовательность)
+        /**
+         * @brief Construct a real number from a rational (constant sequence).
+         * @param q The rational value.
+         */
         explicit RealNumber(value_type q)
             : seq_(std::make_shared<FundamentalSequence>(
                 [q](std::size_t) { return q; }, Rational(0), Rational(1, 2), 0)) {
         }
 
-        // Конструктор из произвольной фундаментальной последовательности
+        /**
+         * @brief Construct a real number from an arbitrary fundamental sequence.
+         * @param seq Shared pointer to the sequence (must be non‑null).
+         */
         explicit RealNumber(std::shared_ptr<FundamentalSequence> seq) : seq_(std::move(seq)) {}
 
-        // Получить приближение с заданным уровнем
+        /**
+         * @brief Obtain an approximation at a given level.
+         * @param n Level (must be ≥ sequence's start_level).
+         * @return The element x_n of the underlying sequence.
+         */
         value_type approximate(std::size_t n) const {
             return (*seq_)(n);
         }
 
-        // Сравнение на равенство (через эквивалентность последовательностей)
+        /**
+         * @brief Equality of real numbers (via equivalence of their sequences).
+         */
         bool operator==(const RealNumber& other) const {
             return are_equivalent(*seq_, *other.seq_);
         }
 
-        // Для тестов: приближённое сравнение с заданной точностью
+        /**
+         * @brief Approximate equality within a given tolerance.
+         *
+         * Finds a level n such that the theoretical error bound of both sequences
+         * is ≤ eps, then checks that the actual difference at that level does not
+         * exceed that bound. Returns false if such a level cannot be found within
+         * a reasonable number of iterations.
+         *
+         * @param other The other real number.
+         * @param eps   Allowed absolute error.
+         * @return true if the numbers are approximately equal.
+         */
         bool approx_equal(const RealNumber& other, const Rational& eps) const {
-            // Берём достаточно большой уровень, чтобы ошибка была меньше eps
-            // Оценка: |x_n - y_n| ≤ C1·r1^n + C2·r2^n. Подбираем n так, чтобы правая часть ≤ eps.
-            // Упрощённо: проверим на уровне, где max(C1·r1^n, C2·r2^n) ≤ eps/2
             const Rational& C1 = seq_->bound();
             const Rational& r1 = seq_->rate();
             const Rational& C2 = other.seq_->bound();
@@ -163,7 +213,7 @@ namespace delta{
         }
 
     private:
-        std::shared_ptr<FundamentalSequence> seq_;
+        std::shared_ptr<FundamentalSequence> seq_;   ///< Underlying fundamental sequence.
     };
 
 } // namespace delta
