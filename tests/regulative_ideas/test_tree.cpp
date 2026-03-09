@@ -7,8 +7,26 @@
 
 namespace delta::testing {
 
+    /**
+     * @class TreePathTest
+     * @brief Test suite for the tree‑based regulative idea (binary tree addresses).
+     *
+     * This fixture tests the behaviour of TreeDeltaPath and the associated tree‑adapted
+     * Riemann sum (tree_riemann_sum). It verifies that integrals over the binary tree
+     * of characteristic functions and constant functions yield the expected values.
+     */
     class TreePathTest : public DeltaTest {};
 
+    /**
+     * @test DirichletIntegral
+     * @brief Approximate the integral of a function that is 1 on right‑half leaves
+     *        and 0 elsewhere, using tree refinement.
+     *
+     * The function returns 1 for addresses ending with '1', 0 for those ending with '0',
+     * and 0 for the root. As the tree refines, the integral should approach 0.5
+     * (half the measure). The test checks that after the first level the integral is
+     * near 0.5, and that it stabilises (changes slowly) in subsequent levels.
+     */
     TEST_F(TreePathTest, DirichletIntegral) {
         TreeDeltaPath<double> path;
         auto func = [](const std::string& addr) -> double {
@@ -30,7 +48,10 @@ namespace delta::testing {
         }
     }
 
-    // Edge cases: level 0 grid (only root)
+    /**
+     * @test LevelZeroGrid
+     * @brief Verify that a newly constructed TreeDeltaPath contains only the root node.
+     */
     TEST_F(TreePathTest, LevelZeroGrid) {
         TreeDeltaPath<double> path; // level = 0
         const auto& grid = path.current_grid();
@@ -38,7 +59,11 @@ namespace delta::testing {
         EXPECT_EQ(grid[0], "");
     }
 
-    // Integral of constant function should be constant value at any level
+    /**
+     * @test ConstantFunctionIntegral
+     * @brief Check that the integral of a constant function on the tree equals that constant
+     *        at every refinement level.
+     */
     TEST_F(TreePathTest, ConstantFunctionIntegral) {
         TreeDeltaPath<double> path;
         auto func = [](const std::string&) { return 2.5; };
@@ -55,7 +80,14 @@ namespace delta::testing {
         }
     }
 
-    // Integral of characteristic function of left half (strings ending with '0')
+    /**
+     * @test LeftHalfCharacteristic
+     * @brief Integral of the characteristic function of the left half of the tree
+     *        (addresses ending with '0').
+     *
+     * The expected value is 0.5. The test checks that after each refinement the
+     * computed integral is near 0.5 and that consecutive integrals are close.
+     */
     TEST_F(TreePathTest, LeftHalfCharacteristic) {
         TreeDeltaPath<double> path;
         auto func = [](const std::string& addr) -> double {
@@ -75,6 +107,13 @@ namespace delta::testing {
         }
     }
 
+    /**
+     * @test RightHalfCharacteristic
+     * @brief Integral of the characteristic function of the right half of the tree
+     *        (addresses ending with '1').
+     *
+     * Symmetric to LeftHalfCharacteristic; also should converge to 0.5.
+     */
     TEST_F(TreePathTest, RightHalfCharacteristic) {
         TreeDeltaPath<double> path;
         auto func = [](const std::string& addr) -> double {
@@ -93,4 +132,5 @@ namespace delta::testing {
             prev = integral;
         }
     }
+
 } // namespace delta::testing

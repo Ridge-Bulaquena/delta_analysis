@@ -5,15 +5,25 @@
 
 namespace delta::testing {
 
+    /**
+     * @class ModulusContinuityTest
+     * @brief Tests verifying that functions satisfy a given modulus of continuity
+     *        on each interval of a refined grid.
+     */
     class ModulusContinuityTest : public DeltaTest {};
 
+    /**
+     * @test Verify that the square root function satisfies the Hölder condition
+     *       with exponent 0.5 on a dyadic path.
+     */
     TEST_F(ModulusContinuityTest, SqrtFunctionHasHolderExponentHalf) {
         ListGrid<Addr, Compare> grid0({ 0_r, 1_r });
         auto path = make_midpoint_path(grid0);
 
         auto func = [](const Addr& x) -> Rational {
             double val = std::sqrt(x.convert_to<double>());
-            // Возвращаем Rational, аппроксимируя double. Для сравнения модуля будем использовать double.
+            // Return Rational approximating the double value.
+            // For modulus comparison we will use double.
             return Rational(val);
             };
 
@@ -36,6 +46,10 @@ namespace delta::testing {
         }
     }
 
+    /**
+     * @test Verify that the identity function satisfies the linear modulus
+     *       ω(δ)=δ on a dyadic path.
+     */
     TEST_F(ModulusContinuityTest, ExponentialModulusForIdentity) {
         ListGrid<Addr, Compare> grid0({ 0_r, 1_r });
         auto path = make_midpoint_path(grid0);

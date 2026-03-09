@@ -20,8 +20,6 @@
 #include "delta/calculus/continuity.h"
 #include "delta/calculus/differentiability.h"
 
-
-
 namespace delta::testing {
     using namespace delta;
     using namespace delta::calculus;
@@ -34,19 +32,37 @@ namespace delta::testing {
     using Compare = std::less<Addr>;
     using delta::operator""_r;
 
-    // Базовый класс фикстуры для всех тестов
+    /**
+     * @class DeltaTest
+     * @brief Base test fixture for all Δ‑analysis tests.
+     *
+     * Provides common type aliases (Addr, Val, Dist, etc.) and utility methods
+     * for checking grid sortedness, bounds, rational near‑equality, and for
+     * creating IntervalInfo objects. It also includes factory functions for
+     * constructing various paths and strategies.
+     */
     class DeltaTest : public ::testing::Test {
     protected:
         void SetUp() override {}
         void TearDown() override {}
 
-        // Проверка монотонности сетки (для ListGrid и других, имеющих begin/end)
+        /**
+         * @brief Checks that a grid is sorted according to its comparator.
+         * @tparam Grid A type satisfying GridConcept.
+         * @param grid The grid to check.
+         * @return true if the grid is strictly increasing.
+         */
         template<typename Grid>
         bool is_sorted(const Grid& grid) const {
             return std::is_sorted(grid.begin(), grid.end(), grid.comparator());
         }
 
-        // Проверка упорядоченности для flat_set (используется в AdaptiveDeltaPath)
+        /**
+         * @brief Checks that a boost::container::flat_set is strictly increasing.
+         * @tparam Set A flat_set type.
+         * @param s The set to check.
+         * @return true if elements are in increasing order.
+         */
         template<typename Set>
         bool is_sorted_set(const Set& s) const {
             if (s.empty()) return true;
@@ -60,18 +76,43 @@ namespace delta::testing {
             return true;
         }
 
-        // Проверка границ
+        /**
+         * @brief Verifies that the first and last elements of a grid match the expected bounds.
+         * @tparam Grid A type satisfying GridConcept.
+         * @param grid The grid to check.
+         * @param start Expected first element.
+         * @param end Expected last element.
+         * @return true if the grid is non‑empty and its endpoints match.
+         */
         template<typename Grid>
         bool bounds_match(const Grid& grid, const Addr& start, const Addr& end) const {
             return grid.size() > 0 && grid[0] == start && grid[grid.size() - 1] == end;
         }
 
-        // Приближённое сравнение рациональных чисел
+        /**
+         * @brief Compares two rational numbers with a tolerance.
+         * @param a First number.
+         * @param b Second number.
+         * @param eps Allowed absolute difference (default 1e-6).
+         * @return true if |a - b| ≤ eps.
+         */
         static bool near(const Rational& a, const Rational& b, const Rational& eps = Rational(1, 1000000)) {
             Rational diff = a - b;
             if (diff < 0) diff = -diff;
             return diff <= eps;
         }
+
+        /**
+         * @brief Creates an IntervalInfo object for testing operators.
+         * @tparam ValType Type of function values (default Val = Rational).
+         * @param left Left endpoint.
+         * @param right Right endpoint.
+         * @param f_left Value at left.
+         * @param f_right Value at right.
+         * @param max_osc Maximum oscillation on the current level.
+         * @param level Current refinement level (default 0).
+         * @return IntervalInfo populated with the given data and default betweenness/metrics.
+         */
         template<typename ValType = Val>
         auto make_info(const Addr& left, const Addr& right,
             const ValType& f_left, const ValType& f_right,
@@ -83,38 +124,66 @@ namespace delta::testing {
     };
 
     // -------------------------------------------------------------------------
-    // Фабрики для создания путей
+    // Factory functions for constructing paths and strategies
     // -------------------------------------------------------------------------
 
-    // Создание статической стратегии с оператором Midpoint
+    /**
+     * @brief Creates a static strategy that always uses the MidpointOperator.
+     */
     inline auto make_midpoint_strategy() {
         return StaticStrategy<MidpointOperator>(MidpointOperator{});
     }
 
-    // Создание статической стратегии с фиксированной лямбдой
+    /**
+     * @brief Creates a static strategy that uses a FixedLambdaOperator with the given lambda.
+     * @param lambda Fraction of the interval where the new point is placed (must be in (0,1)).
+     */
     inline auto make_lambda_strategy(const Rational& lambda) {
         return StaticStrategy<FixedLambdaOperator>(FixedLambdaOperator(lambda));
     }
 
-    // Создание динамической стратегии из списка операторов
+    /**
+     * @brief Creates a dynamic strategy from a vector of operators.
+     * @tparam Op Operator type (e.g., FixedLambdaOperator).
+     * @param ops Vector of operators; for level i, operator ops[i] is used if i < ops.size(),
+     *            otherwise the last operator is repeated.
+     */
     template<typename Op>
     inline auto make_dynamic_strategy(const std::vector<Op>& ops) {
         return DynamicStrategy<Op>(ops);
     }
 
-    // Базовая фабрика для DeltaPath с типом стратегии по умолчанию (Midpoint)
+    /**
+     * @brief Creates a DeltaPath with the given strategy.
+     * @tparam Strategy Type of strategy (e.g., StaticStrategy<MidpointOperator>).
+     * @param grid Initial grid.
+     * @param strategy Strategy to use for refinement.
+     * @return DeltaPath object.
+     */
     template<typename Strategy>
     inline auto make_path(const ListGrid<Addr, Compare>& grid, Strategy&& strategy) {
         return DeltaPath<Addr, Val, Dist, Between, AddrMetric, ValMetric, std::decay_t<Strategy>, Compare>(
             grid, std::forward<Strategy>(strategy), Between{}, AddrMetric{}, ValMetric{});
     }
 
-    // Упрощённая фабрика для пути с Midpoint
+    /**
+     * @brief Shortcut to create a DeltaPath that uses the midpoint operator.
+     * @param grid Initial grid.
+     * @return DeltaPath with midpoint strategy.
+     */
     inline auto make_midpoint_path(const ListGrid<Addr, Compare>& grid) {
         return make_path(grid, make_midpoint_strategy());
     }
 
-    // Фабрика для адаптивного пути
+    /**
+     * @brief Creates an AdaptiveDeltaPath.
+     * @tparam Op Operator type.
+     * @param init Initial addresses (must be sorted).
+     * @param func Function to compute values.
+     * @param op Delta operator.
+     * @param threshold Priority threshold; intervals with priority ≤ threshold are not refined.
+     * @return AdaptiveDeltaPath object.
+     */
     template<typename Op>
     inline auto make_adaptive_path(const std::vector<Addr>& init,
         std::function<Val(const Addr&)> func,
@@ -123,14 +192,20 @@ namespace delta::testing {
         return AdaptiveDeltaPath<Addr, Val, Dist, Between, AddrMetric, ValMetric, std::decay_t<Op>, Compare>(
             init, func, std::forward<Op>(op), threshold, Between{}, AddrMetric{}, ValMetric{});
     }
-    // Вспомогательная функция: 2^n для небольших n
+
+    /**
+     * @brief Computes 2^n for small n (used in tests).
+     * @param n Exponent.
+     * @return Rational representing 2^n.
+     */
     static inline Rational pow2(std::size_t n) {
         Rational result = 1;
         for (std::size_t i = 0; i < n; ++i) result *= 2;
         return result;
     }
+
     // -------------------------------------------------------------------------
-    // Макрос для приближённого сравнения
+    // Macro for approximate rational comparison
     // -------------------------------------------------------------------------
 #define EXPECT_RATIONAL_NEAR(val, expected, eps) \
         EXPECT_PRED3((::delta::testing::DeltaTest::near), val, expected, eps)

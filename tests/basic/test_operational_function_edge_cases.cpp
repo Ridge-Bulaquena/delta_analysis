@@ -4,11 +4,11 @@
 
 namespace delta::testing {
 
-    // -------------------------------------------------------------------------
-    // OperationalFunction (general version)
-    // -------------------------------------------------------------------------
     class OperationalFunctionGeneralTest : public DeltaTest {};
 
+    /**
+     * @test Create an operational function on a ListGrid and verify query results.
+     */
     TEST_F(OperationalFunctionGeneralTest, CreateAndQuery) {
         ListGrid<Addr, Compare> grid({ 0_r, 1_r, 2_r });
         OperationalFunction<Addr, Val, decltype(grid)> func(
@@ -19,6 +19,9 @@ namespace delta::testing {
         EXPECT_EQ(func(2_r), 4_r);
     }
 
+    /**
+     * @test Querying an address not present in the function throws std::out_of_range.
+     */
     TEST_F(OperationalFunctionGeneralTest, QueryMissingAddress) {
         ListGrid<Addr, Compare> grid({ 0_r, 2_r });
         OperationalFunction<Addr, Val, decltype(grid)> func(
@@ -26,6 +29,9 @@ namespace delta::testing {
         EXPECT_THROW(func(1_r), std::out_of_range);
     }
 
+    /**
+     * @test contains() correctly distinguishes between present and absent addresses.
+     */
     TEST_F(OperationalFunctionGeneralTest, Contains) {
         ListGrid<Addr, Compare> grid({ 0_r, 2_r });
         OperationalFunction<Addr, Val, decltype(grid)> func(
@@ -35,6 +41,9 @@ namespace delta::testing {
         EXPECT_FALSE(func.contains(1_r));
     }
 
+    /**
+     * @test Extend the function to a refined grid using midpoint interpolation.
+     */
     TEST_F(OperationalFunctionGeneralTest, Extend) {
         ListGrid<Addr, Compare> grid0({ 0_r, 1_r });
         OperationalFunction<Addr, Val, decltype(grid0)> func(
@@ -60,10 +69,18 @@ namespace delta::testing {
     // -------------------------------------------------------------------------
     // OperationalFunction specialization for UniformGrid
     // -------------------------------------------------------------------------
+
+    /**
+     * @class OperationalFunctionUniformTest
+     * @brief Edge‑case tests for the OperationalFunction specialization on UniformGrid.
+     */
     class OperationalFunctionUniformTest : public DeltaTest {};
 
+    /**
+     * @test Create an operational function on a UniformGrid and query values.
+     *       Grid covers [0,1] with step 1/4: 0, 1/4, 1/2, 3/4, 1.
+     */
     TEST_F(OperationalFunctionUniformTest, CreateAndQuery) {
-        // Сетка с шагом 1/4, покрывающая [0,1] пятью точками: 0, 1/4, 1/2, 3/4, 1
         UniformGrid<Addr, Compare> grid(0_r, 1_r / 4_r, 5);
         OperationalFunction<Addr, Val, decltype(grid)> func(
             grid, [](const Addr& x) { return x * x; });
@@ -75,15 +92,22 @@ namespace delta::testing {
         EXPECT_EQ(func(1_r), 1_r);
     }
 
+    /**
+     * @test Querying an address not belonging to the uniform grid:
+     *       contains() returns false, operator() throws an exception.
+     */
     TEST_F(OperationalFunctionUniformTest, QueryMissingAddress) {
         UniformGrid<Addr, Compare> grid(0_r, 1_r, 2); // 0, 1
         OperationalFunction<Addr, Val, decltype(grid)> func(
             grid, [](const Addr& x) { return x; });
-        // 0.5 не принадлежит сетке, но contains должен вернуть false, а operator() бросить исключение
+        // 0.5 is not in the grid
         EXPECT_FALSE(func.contains(1_r / 2_r));
         EXPECT_THROW(func(1_r / 2_r), std::exception);
     }
 
+    /**
+     * @test Extend a uniform‑grid function to a finer uniform grid.
+     */
     TEST_F(OperationalFunctionUniformTest, Extend) {
         UniformGrid<Addr, Compare> grid0(0_r, 1_r, 2); // 0,1
         OperationalFunction<Addr, Val, decltype(grid0)> func(
@@ -102,7 +126,9 @@ namespace delta::testing {
         EXPECT_EQ(func(1_r / 2_r), 1_r / 2_r);
     }
 
-    // Проверка, что contains работает для точек, не принадлежащих сетке
+    /**
+     * @test Verify that contains() correctly identifies points not on the grid.
+     */
     TEST_F(OperationalFunctionUniformTest, ContainsNonGridPoint) {
         UniformGrid<Addr, Compare> grid(0_r, 1_r / 3_r, 4); // 0, 1/3, 2/3, 1
         OperationalFunction<Addr, Val, decltype(grid)> func(
@@ -110,7 +136,10 @@ namespace delta::testing {
         EXPECT_FALSE(func.contains(1_r / 2_r));
     }
 
-    // Проверка с Eigen-матрицами (уже есть в numerical, но можно дублировать)
+    /**
+     * @test Verify that the UniformGrid specialization works with Eigen::MatrixXd values.
+     *       (Similar test exists in numerical tests, but repeated here for completeness.)
+     */
     TEST_F(OperationalFunctionUniformTest, EigenMatrix) {
         using Matrix = Eigen::MatrixXd;
         UniformGrid<Addr, Compare> grid(0_r, 1_r, 5);

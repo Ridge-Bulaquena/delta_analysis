@@ -4,8 +4,21 @@
 
 namespace delta::testing {
 
+    /**
+     * @class DifferentiabilityTest
+     * @brief Tests for differentiability checks using modulus of convergence.
+     *
+     * Verifies that the function check_differentiability correctly determines
+     * whether a function has a given derivative at a point, based on the
+     * difference quotients on a sequence of refined grids.
+     */
     class DifferentiabilityTest : public DeltaTest {};
 
+    /**
+     * @test Identity function f(x)=x at x=1/2.
+     *       The derivative should be 1, and the error should be zero,
+     *       so any modulus with C=0 works.
+     */
     TEST_F(DifferentiabilityTest, IdentityFunction) {
         ListGrid<Addr, Compare> grid0({ 0_r, 1_r });
         auto path = make_midpoint_path(grid0);
@@ -27,6 +40,11 @@ namespace delta::testing {
         EXPECT_TRUE(diff);
     }
 
+    /**
+     * @test Quadratic function f(x)=x² at x=1/2.
+     *       The derivative is 1, and the error is bounded by the grid step,
+     *       so the linear modulus ω(δ)=δ should be satisfied.
+     */
     TEST_F(DifferentiabilityTest, QuadraticAtHalf) {
         ListGrid<Addr, Compare> grid0({ 0_r, 1_r });
         auto path = make_midpoint_path(grid0);
@@ -48,6 +66,11 @@ namespace delta::testing {
         EXPECT_TRUE(diff);
     }
 
+    /**
+     * @test Quadratic function f(x)=x² at x=1/4.
+     *       The derivative is 1/2. The point first appears at some level;
+     *       we check from that level onward, using the linear modulus.
+     */
     TEST_F(DifferentiabilityTest, QuadraticAtQuarter) {
         ListGrid<Addr, Compare> grid0({ 0_r, 1_r });
         auto path = make_midpoint_path(grid0);
@@ -75,6 +98,11 @@ namespace delta::testing {
         EXPECT_TRUE(diff);
     }
 
+    /**
+     * @test Absolute value function f(x)=|x| at x=0.
+     *       It is not differentiable at zero, so the test should fail
+     *       even with a linear modulus.
+     */
     TEST_F(DifferentiabilityTest, AbsoluteValueNotDifferentiableAtZero) {
         ListGrid<Addr, Compare> grid0({ -1_r, 0_r, 1_r });
         auto path = make_midpoint_path(grid0);

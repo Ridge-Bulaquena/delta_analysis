@@ -7,6 +7,16 @@
 
 namespace delta::testing {
 
+    /**
+     * @class PAdicPathTest
+     * @brief Template test fixture for checking Δ‑analysis concepts with p‑adic metric.
+     *
+     * This fixture sets up a dyadic path on [0,1] with the p‑adic metric (PAdicMetric<p>)
+     * and Euclidean metric for values. It is used to test continuity, differentiability,
+     * and integration in the context of a regulative idea based on p‑adic numbers.
+     *
+     * @tparam p The prime defining the p‑adic metric.
+     */
     template<int p>
     class PAdicPathTest : public DeltaTest {
     protected:
@@ -14,7 +24,8 @@ namespace delta::testing {
         using Value = Rational;
         using Distance = Rational;
         using Compare = std::less<Addr>;
-        using Betweenness = LessBetweenness; // для p-адического пути междуness не критичен
+        // For the p‑adic path, the betweenness relation is not crucial.
+        using Betweenness = LessBetweenness;
         using Metric = PAdicMetric<p>;
         using ValueMetric = EuclideanValueMetric;
 
@@ -39,10 +50,18 @@ namespace delta::testing {
             StaticStrategy<MidpointOperator>, Compare>> path_;
     };
 
-    // Явно инстанцируем для p=2 и p=3
+    // Explicit instantiations for p=2 and p=3.
     using PAdicPathTest2 = PAdicPathTest<2>;
     using PAdicPathTest3 = PAdicPathTest<3>;
 
+    /**
+     * @test ConstantFunction (p=2)
+     * @brief Verify that a constant function satisfies continuity with a zero modulus
+     *        on the dyadic path under the 2‑adic metric.
+     *
+     * For any constant function, the oscillation is zero, so the continuity condition
+     * holds regardless of the metric.
+     */
     TEST_F(PAdicPathTest2, ConstantFunction) {
         auto func = [](const Addr&) { return Rational(5); };
         PowerModulus<Rational> modulus(0_r, 1_r);
@@ -54,6 +73,10 @@ namespace delta::testing {
         }
     }
 
+    /**
+     * @test ConstantFunction (p=3)
+     * @brief Same as above but for the 3‑adic metric.
+     */
     TEST_F(PAdicPathTest3, ConstantFunction) {
         auto func = [](const Addr&) { return Rational(5); };
         PowerModulus<Rational> modulus(0_r, 1_r);
@@ -65,30 +88,42 @@ namespace delta::testing {
         }
     }
 
-    // Дополнительный тест для функции, чувствительной к p-адической метрике
+    /**
+     * @test DivisibilityFunction
+     * @brief A sanity check for a function that depends on divisibility by p.
+     *
+     * The function returns 1 if the address is an integer divisible by p, otherwise 0.
+     * Continuity in the p‑adic metric is non‑trivial; here we only verify that the
+     * code runs without errors (no assertions or exceptions). The modulus used is
+     * intentionally simple; the exact continuity properties are not checked.
+     */
     TEST_F(PAdicPathTest2, DivisibilityFunction) {
-        // Функция: 1 если число делится на p, иначе 0
+        // Function: 1 if x is an integer divisible by p, else 0.
         auto func = [](const Addr& x) -> Rational {
             int num = numerator(x).convert_to<int>();
             int den = denominator(x).convert_to<int>();
-            // Проверяем, что число целое и делится на p? Это сложно.
-            // Упростим: берём только целые числа из адресов.
+            // For simplicity, consider only integers (denominator == 1).
             if (den == 1) {
                 return (num % 2 == 0) ? Rational(1) : Rational(0);
             }
             return Rational(0);
             };
-        // Для такой функции непрерывность в p-адической метрике неочевидна.
-        // Пока просто проверяем, что код выполняется без ошибок.
+        // The continuity in p‑adic metric is not obvious; we just check that the call
+        // does not crash.
         PowerModulus<Rational> modulus(1_r, 1_r);
         for (int n = 0; n < 3; ++n) {
             const auto& grid = path_->current_grid();
             check_continuity_level(grid, func, value_metric_, modulus, 1e-12);
             path_->advance(func);
         }
-        // Если дошли до сюда, значит тест пройден (исключений не было)
+        // Reaching this point means no exception was thrown.
         SUCCEED();
     }
+
+    /**
+     * @test EmptyGridRiemannSum
+     * @brief Verify that the left Riemann sum on an empty grid returns zero.
+     */
     TEST_F(PAdicPathTest2, EmptyGridRiemannSum) {
         ListGrid<Addr, Compare> empty_grid;
         auto func = [](const Addr&) { return Rational(0); };
@@ -96,6 +131,10 @@ namespace delta::testing {
         EXPECT_EQ(sum, 0_r);
     }
 
+    /**
+     * @test SinglePointGridRiemannSum
+     * @brief Verify that the left Riemann sum on a grid with a single point returns zero.
+     */
     TEST_F(PAdicPathTest2, SinglePointGridRiemannSum) {
         ListGrid<Addr, Compare> grid({ 5_r });
         auto func = [](const Addr& x) { return x; };
@@ -103,9 +142,13 @@ namespace delta::testing {
         EXPECT_EQ(sum, 0_r);
     }
 
-    // Проверка дифференцируемости f(x)=x
+    /**
+     * @test IdentityDifferentiability
+     * @brief Check that the identity function f(x)=x is differentiable at x=1/2
+     *        with derivative 1, using a zero modulus (exact equality).
+     */
     TEST_F(PAdicPathTest2, IdentityDifferentiability) {
-        // Строим последовательность сеток, как в тестах calculus
+        // Build a sequence of grids as in the calculus tests.
         ListGrid<Addr, Compare> grid0({ 0_r, 1_r });
         auto path = make_midpoint_path(grid0);
         auto func = [](const Addr& x) { return x; };
@@ -120,7 +163,7 @@ namespace delta::testing {
 
         Addr x = 1_r / 2_r;
         Distance D = 1_r;
-        PowerModulus<Rational> modulus(0_r, 1_r); // нулевой модуль, так как ошибка 0
+        PowerModulus<Rational> modulus(0_r, 1_r); // zero modulus because error is zero
 
         std::size_t first_level = 0;
         for (; first_level < grids.size(); ++first_level) {
@@ -132,7 +175,12 @@ namespace delta::testing {
         EXPECT_TRUE(diff);
     }
 
-    // Интеграл от f(x)=x на [0,1] (в смысле обычного интеграла, несмотря на p-адическую метрику)
+    /**
+     * @test IdentityIntegral
+     * @brief Verify that the left Riemann sum of f(x)=x on [0,1] converges to 1/2
+     *        under the p‑adic metric (the metric does not affect the integral value,
+     *        only the grid construction; here we use the usual dyadic refinement).
+     */
     TEST_F(PAdicPathTest2, IdentityIntegral) {
         ListGrid<Addr, Compare> grid0({ 0_r, 1_r });
         auto path = make_midpoint_path(grid0);
@@ -147,7 +195,13 @@ namespace delta::testing {
         EXPECT_RATIONAL_NEAR(integral, 1_r / 2_r, Rational(1, 1000));
     }
 
-    // AdaptiveDeltaPath для f(x)=x^2
+    /**
+     * @test AdaptivePathForSquare
+     * @brief Test that AdaptiveDeltaPath works with the p‑adic metric for f(x)=x².
+     *
+     * An adaptive path is created with a small threshold. After several refinements,
+     * the point set must be strictly increasing and the size must have increased.
+     */
     TEST_F(PAdicPathTest2, AdaptivePathForSquare) {
         std::vector<Addr> init = { 0_r, 1_r };
         auto func = [](const Addr& x) { return x * x; };
@@ -163,4 +217,5 @@ namespace delta::testing {
         EXPECT_GT(steps, 0);
         EXPECT_GT(path.size(), 2);
     }
+
 } // namespace delta::testing

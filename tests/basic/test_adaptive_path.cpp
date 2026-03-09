@@ -4,12 +4,26 @@
 
 using namespace delta::testing;
 
+/**
+ * @class AdaptivePathTest
+ * @brief Tests for AdaptiveDeltaPath class.
+ *
+ * AdaptiveDeltaPath builds a non‑uniform grid by inserting new points based on
+ * a priority criterion (deviation from linearity). This suite verifies basic
+ * operations, invariants, and edge cases.
+ */
 class AdaptivePathTest : public DeltaTest {};
 
-// Вспомогательная константа для явного указания порога (достаточно мала, чтобы не мешать,
-// но положительна, так как конструктор AdaptiveDeltaPath теперь требует threshold > 0).
+// Helper constant for explicit threshold specification.
+// It is small enough not to interfere but positive because AdaptiveDeltaPath
+// constructor now requires threshold > 0.
 const Dist DEFAULT_THRESHOLD = Rational(1, 1000000);
 
+/**
+ * @test Verify that a path can be constructed from two initial points,
+ *       that it initially contains exactly those points, and that one
+ *       refinement step adds a midpoint.
+ */
 TEST_F(AdaptivePathTest, Initialization) {
     std::vector<Addr> init = { 0_r, 1_r };
     auto func = [](const Addr& x) { return x * x; };
@@ -23,6 +37,10 @@ TEST_F(AdaptivePathTest, Initialization) {
     EXPECT_EQ(path.size(), 3);
 }
 
+/**
+ * @test With a midpoint operator and a quadratic function, after one step
+ *       the new point should be exactly the midpoint (1/2).
+ */
 TEST_F(AdaptivePathTest, OneStepMidpoint) {
     std::vector<Addr> init = { 0_r, 1_r };
     auto func = [](const Addr& x) { return x * x; };
@@ -39,6 +57,10 @@ TEST_F(AdaptivePathTest, OneStepMidpoint) {
     EXPECT_EQ(*it, 1_r);
 }
 
+/**
+ * @test After several steps using the midpoint operator, the number of points
+ *       should increase by one each step, and the set must remain sorted.
+ */
 TEST_F(AdaptivePathTest, SeveralStepsMidpoint) {
     std::vector<Addr> init = { 0_r, 1_r };
     auto func = [](const Addr& x) { return x * x; };
@@ -53,6 +75,11 @@ TEST_F(AdaptivePathTest, SeveralStepsMidpoint) {
     EXPECT_TRUE(is_sorted_set(path.points()));
 }
 
+/**
+ * @test If the threshold is larger than any possible deviation, no refinement
+ *       should occur. For the identity function the deviation is zero, so a
+ *       threshold of 1 stops all refinements.
+ */
 TEST_F(AdaptivePathTest, Threshold) {
     std::vector<Addr> init = { 0_r, 1_r };
     auto func = [](const Addr& x) { return x; };
@@ -65,6 +92,11 @@ TEST_F(AdaptivePathTest, Threshold) {
     EXPECT_EQ(path.size(), 2);
 }
 
+/**
+ * @test Using the adaptive operator (which depends on function values) should
+ *       still allow at least one refinement step. The exact point is not
+ *       checked, only that the size increases.
+ */
 TEST_F(AdaptivePathTest, AdaptiveOperator) {
     std::vector<Addr> init = { 0_r, 1_r };
     auto func = [](const Addr& x) { return x * x; };
@@ -76,7 +108,11 @@ TEST_F(AdaptivePathTest, AdaptiveOperator) {
     EXPECT_EQ(path.size(), 3);
 }
 
-// Тест betweenness – используем нелинейную функцию и явный порог
+/**
+ * @test The betweenness property: all points in the set must be strictly
+ *       increasing according to the comparator. This invariant is checked
+ *       after every refinement step until the queue empties.
+ */
 TEST_F(AdaptivePathTest, BetweennessProperty) {
     std::vector<Addr> init = { 0_r, 1_r };
     auto func = [](const Addr& x) { return x * x; };
@@ -90,6 +126,11 @@ TEST_F(AdaptivePathTest, BetweennessProperty) {
     EXPECT_GT(steps, 0);
 }
 
+/**
+ * @test Many steps with the midpoint operator; the number of points should
+ *       increase linearly with the number of refinements, and the set must
+ *       stay sorted.
+ */
 TEST_F(AdaptivePathTest, ManySteps) {
     std::vector<Addr> init = { 0_r, 1_r };
     auto func = [](const Addr& x) { return x * x; };
@@ -110,27 +151,36 @@ TEST_F(AdaptivePathTest, ManySteps) {
 // AdaptiveDeltaPath edge cases
 // -------------------------------------------------------------------------
 
-// Тест инициализации с пустым списком точек
+/**
+ * @test Construction with an empty list of initial points should yield a path
+ *       of size 0, and advance() should do nothing.
+ */
 TEST_F(AdaptivePathTest, EmptyInitialPoints) {
     std::vector<Addr> init;
     auto func = [](const Addr&) { return Val(0); };
     MidpointOperator op;
     auto path = make_adaptive_path(init, func, op, DEFAULT_THRESHOLD);
     EXPECT_EQ(path.size(), 0);
-    EXPECT_FALSE(path.advance()); // нечего уточнять
+    EXPECT_FALSE(path.advance()); // nothing to refine
 }
 
-// Одна точка
+/**
+ * @test A single initial point leaves no interval to refine, so size stays 1
+ *       and advance() returns false.
+ */
 TEST_F(AdaptivePathTest, SingleInitialPoint) {
     std::vector<Addr> init = { 5_r };
     auto func = [](const Addr& x) { return x; };
     MidpointOperator op;
     auto path = make_adaptive_path(init, func, op, DEFAULT_THRESHOLD);
     EXPECT_EQ(path.size(), 1);
-    EXPECT_FALSE(path.advance()); // нет интервалов
+    EXPECT_FALSE(path.advance()); // no intervals
 }
 
-// Две точки с порогом – используем нелинейную функцию
+/**
+ * @test Two points with a threshold that does not suppress refinement:
+ *       the first step should insert the midpoint.
+ */
 TEST_F(AdaptivePathTest, TwoPointsWithThreshold) {
     std::vector<Addr> init = { 0_r, 1_r };
     auto func = [](const Addr& x) { return x * x; };
@@ -146,7 +196,10 @@ TEST_F(AdaptivePathTest, TwoPointsWithThreshold) {
     EXPECT_EQ(*it, 1_r);
 }
 
-// Две точки, порог выше вариации – ничего не вставляется
+/**
+ * @test Two points with a threshold larger than any possible variation:
+ *       no refinement occurs.
+ */
 TEST_F(AdaptivePathTest, TwoPointsAboveThreshold) {
     std::vector<Addr> init = { 0_r, 1_r };
     auto func = [](const Addr& x) { return x; };
@@ -157,7 +210,9 @@ TEST_F(AdaptivePathTest, TwoPointsAboveThreshold) {
     EXPECT_EQ(path.size(), 2);
 }
 
-// Проверка, что после нескольких шагов сетка упорядочена
+/**
+ * @test Invariant: after every refinement step the point set must be sorted.
+ */
 TEST_F(AdaptivePathTest, SortedInvariant) {
     std::vector<Addr> init = { 0_r, 1_r };
     auto func = [](const Addr& x) { return x * x; };
@@ -169,7 +224,10 @@ TEST_F(AdaptivePathTest, SortedInvariant) {
     }
 }
 
-// Проверка, что границы сохраняются
+/**
+ * @test Invariant: the leftmost point always stays the original left bound,
+ *       and the rightmost point always stays the original right bound.
+ */
 TEST_F(AdaptivePathTest, BoundsInvariant) {
     std::vector<Addr> init = { 0_r, 1_r };
     auto func = [](const Addr& x) { return x * x; };
@@ -183,7 +241,11 @@ TEST_F(AdaptivePathTest, BoundsInvariant) {
     }
 }
 
-// Тест с AdaptiveOperator – добавляем порог
+/**
+ * @test Basic functionality with the AdaptiveOperator (which may place points
+ *       not exactly at midpoints). Only the size increase and sortedness are
+ *       checked.
+ */
 TEST_F(AdaptivePathTest, AdaptiveOperatorBasic) {
     std::vector<Addr> init = { 0_r, 1_r };
     auto func = [](const Addr& x) { return x * x; };
@@ -191,28 +253,14 @@ TEST_F(AdaptivePathTest, AdaptiveOperatorBasic) {
     auto path = make_adaptive_path(init, func, adapt_op, DEFAULT_THRESHOLD);
     EXPECT_TRUE(path.advance());
     EXPECT_EQ(path.size(), 3);
-    // Точка должна быть где-то между 0 и 1, но не обязательно середина.
-    // Проверим только упорядоченность.
+    // The point should lie somewhere between 0 and 1, but not necessarily the midpoint.
+    // Only sortedness is verified.
     EXPECT_TRUE(is_sorted_set(path.points()));
 }
 
-// Стресс-тест с большим числом шагов – отключён, но порог добавим для корректности
-TEST_F(AdaptivePathTest, DISABLED_ManyRefinementsStress) {
-    std::vector<Addr> init = { 0_r, 1_r };
-    auto func = [](const Addr& x) { return x * x; };
-    AdaptiveOperator adapt_op(1_r / 100_r, 1_r / 100_r);
-    auto path = make_adaptive_path(init, func, adapt_op, DEFAULT_THRESHOLD);
-
-    const int N = 15;
-    for (int i = 0; i < N; ++i) {
-        bool advanced = path.advance();
-        EXPECT_TRUE(advanced) << "Failed at step " << i;
-        EXPECT_TRUE(is_sorted_set(path.points())) << "Unsorted at step " << i;
-    }
-    EXPECT_GT(path.size(), 1000);
-}
-
-// Альтернативный стресс-тест с MidpointOperator
+/**
+ * @test Stress test with many refinements using the midpoint operator.
+ */
 TEST_F(AdaptivePathTest, ManyRefinementsMidpoint) {
     std::vector<Addr> init = { 0_r, 1_r };
     auto func = [](const Addr& x) { return x * x; };
@@ -227,20 +275,26 @@ TEST_F(AdaptivePathTest, ManyRefinementsMidpoint) {
     EXPECT_EQ(path.size(), 2 + N);
 }
 
+/**
+ * @test Check that the queue eventually empties when the threshold is chosen
+ *       so that deeper intervals have deviation below the threshold.
+ */
 TEST_F(AdaptivePathTest, QueueEmpties) {
     std::vector<Addr> init = { 0_r, 1_r };
     auto func = [](const Addr& x) { return x * x; };
     MidpointOperator op;
     Dist threshold = Rational(24, 100); // 0.24 < 0.25
     auto path = make_adaptive_path(init, func, op, threshold);
-    // deviation на [0,1] = 0.25 > 0.24 → первый шаг
+    // deviation on [0,1] = 0.25 > 0.24 → first step performed
     EXPECT_TRUE(path.advance());
-    // после разбиения deviation на новых интервалах = 0.0625 < 0.24 → очередь пуста
+    // after splitting, deviation on the sub‑intervals = 0.0625 < 0.24 → queue empty
     EXPECT_FALSE(path.advance());
     EXPECT_EQ(path.size(), 3);
 }
 
-// Очень маленький порог – много шагов
+/**
+ * @test A very small threshold allows many refinement steps (well over 100).
+ */
 TEST_F(AdaptivePathTest, VerySmallThreshold) {
     std::vector<Addr> init = { 0_r, 1_r };
     auto func = [](const Addr& x) { return x * x; };
@@ -254,7 +308,10 @@ TEST_F(AdaptivePathTest, VerySmallThreshold) {
     EXPECT_GT(steps, 100);
 }
 
-// Проверка, что max_oscillation не ломает упорядоченность
+/**
+ * @test Verify that updating the maximum oscillation does not break the
+ *       sortedness invariant.
+ */
 TEST_F(AdaptivePathTest, MaxOscillationConsistency) {
     std::vector<Addr> init = { 0_r, 1_r };
     auto func = [](const Addr& x) { return x * x; };

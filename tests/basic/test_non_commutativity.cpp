@@ -5,8 +5,19 @@
 
 using namespace delta::testing;
 
+/**
+ * @class NonCommutativityTest
+ * @brief Tests for non‑commutativity of delta operators.
+ *
+ * Verifies that applying operators in different orders yields different grids,
+ * while preserving sorting and bounds.
+ */
 class NonCommutativityTest : public DeltaTest {};
 
+/**
+ * @test Using two different fixed‑lambda operators (1/3 and 2/3) in opposite
+ *       orders should produce different grids after two refinement steps.
+ */
 TEST_F(NonCommutativityTest, Lambda13vs23) {
     FixedLambdaOperator op13(1_r / 3_r);
     FixedLambdaOperator op23(2_r / 3_r);
@@ -30,13 +41,13 @@ TEST_F(NonCommutativityTest, Lambda13vs23) {
     auto grid1 = path1.current_grid();
     auto grid2 = path2.current_grid();
 
-    // Инвариантные проверки
+    // Invariant checks
     EXPECT_TRUE(is_sorted(grid1));
     EXPECT_TRUE(is_sorted(grid2));
     EXPECT_TRUE(bounds_match(grid1, 0_r, 1_r));
     EXPECT_TRUE(bounds_match(grid2, 0_r, 1_r));
 
-    // Проверка конкретных значений (для данного теста они важны)
+    // Check specific values (important for this test)
     EXPECT_EQ(grid1[0], 0_r);
     EXPECT_EQ(grid1[1], 2_r / 9_r);
     EXPECT_EQ(grid1[2], 1_r / 3_r);
@@ -49,6 +60,6 @@ TEST_F(NonCommutativityTest, Lambda13vs23) {
     EXPECT_EQ(grid2[3], 7_r / 9_r);
     EXPECT_EQ(grid2[4], 1_r);
 
-    // Сетки должны различаться
+    // Grids must differ
     EXPECT_NE(grid1[2], grid2[2]);
 }

@@ -4,6 +4,9 @@
 #include <iostream>
 
 int main(int argc, char** argv) {
+    // FORCED OpenMP initialization before running tests
+    // This "warms up" the runtime and prevents Access Violation
+    // "Warm-up" call: force OMP to create thread pool right now
 #pragma omp parallel
     {
 #pragma omp master

@@ -4,11 +4,17 @@
 
 namespace delta::testing {
 
-    // -------------------------------------------------------------------------
-    // StaticStrategy tests
-    // -------------------------------------------------------------------------
+    /**
+     * @class StaticStrategyTest
+     * @brief Tests for StaticStrategy.
+     *
+     * StaticStrategy always returns the same operator regardless of the level.
+     */
     class StaticStrategyTest : public DeltaTest {};
 
+    /**
+     * @test Verify that the same operator is returned for all levels.
+     */
     TEST_F(StaticStrategyTest, SameOperatorForAllLevels) {
         MidpointOperator op;
         auto strategy = StaticStrategy<MidpointOperator>(op);
@@ -21,11 +27,18 @@ namespace delta::testing {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // DynamicStrategy tests
-    // -------------------------------------------------------------------------
+    /**
+     * @class DynamicStrategyTest
+     * @brief Tests for DynamicStrategy.
+     *
+     * DynamicStrategy stores a vector of operators and returns the operator
+     * corresponding to the level (falling back to the last one for out‑of‑range levels).
+     */
     class DynamicStrategyTest : public DeltaTest {};
 
+    /**
+     * @test Constructing with an empty vector should throw std::invalid_argument.
+     */
     TEST_F(DynamicStrategyTest, EmptyVectorThrows) {
         using OpType = MidpointOperator;
         EXPECT_THROW({
@@ -33,6 +46,9 @@ namespace delta::testing {
             }, std::invalid_argument);
     }
 
+    /**
+     * @test With a single operator, that operator should be returned for all levels.
+     */
     TEST_F(DynamicStrategyTest, SingleOperator) {
         MidpointOperator op;
         using OpType = MidpointOperator;
@@ -46,6 +62,10 @@ namespace delta::testing {
         }
     }
 
+    /**
+     * @test With multiple operators, the correct one should be returned for each level,
+     *       and levels beyond the vector size should receive the last operator.
+     */
     TEST_F(DynamicStrategyTest, MultipleOperators) {
         FixedLambdaOperator op1(1_r / 3_r);
         FixedLambdaOperator op2(2_r / 3_r);
@@ -69,11 +89,19 @@ namespace delta::testing {
         EXPECT_EQ(result2, 2_r / 3_r);
     }
 
-    // -------------------------------------------------------------------------
-    // FactoryStrategy tests
-    // -------------------------------------------------------------------------
+    /**
+     * @class FactoryStrategyTest
+     * @brief Tests for FactoryStrategy.
+     *
+     * FactoryStrategy creates a new operator on demand using a user‑provided factory
+     * function that receives the level.
+     */
     class FactoryStrategyTest : public DeltaTest {};
 
+    /**
+     * @test Verify that the factory is called with the correct level each time
+     *       get_operator is invoked.
+     */
     TEST_F(FactoryStrategyTest, FactoryCalledWithCorrectLevel) {
         std::vector<std::size_t> called_levels;
         using OpType = MidpointOperator;
@@ -83,10 +111,10 @@ namespace delta::testing {
             };
         FactoryStrategy<OpType> strategy(factory);
 
-        // Запрашиваем операторы для разных уровней
+        // Request operators for different levels
         strategy.get_operator(3);
         strategy.get_operator(5);
-        strategy.get_operator(3); // опять 3
+        strategy.get_operator(3); // again level 3
 
         EXPECT_EQ(called_levels.size(), 3);
         EXPECT_EQ(called_levels[0], 3);

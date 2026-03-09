@@ -9,17 +9,34 @@
 
 namespace delta::testing {
 
+    // Custom comparator for Eigen::MatrixXd based on Frobenius norm.
     struct MatrixLess {
         bool operator()(const Eigen::MatrixXd& a, const Eigen::MatrixXd& b) const {
             return a.norm() < b.norm();
         }
     };
 
+    /**
+     * @class MatrixPathTest
+     * @brief Test suite for matrix‑valued functions (Eigen::MatrixXd) in Δ‑analysis.
+     *
+     * Verifies that grids, paths, Riemann sums, and adaptive refinement work
+     * correctly with matrix addresses and values.
+     */
     class MatrixPathTest : public DeltaTest {};
 
+    /**
+     * @test TraceIntegral
+     * @brief Basic sanity check for Riemann sums of matrix‑valued functions.
+     *
+     * Constructs a path from two diagonal matrices (0.5·I and I) and refines it
+     * three times. At each level computes the left Riemann sum of the identity
+     * function (f(X)=X) and checks that the norm is positive and changes between
+     * successive levels.
+     */
     TEST_F(MatrixPathTest, TraceIntegral) {
         using Addr = Eigen::MatrixXd;
-        using Value = Eigen::MatrixXd;      // важно: Value тоже матрица
+        using Value = Eigen::MatrixXd;      // Note: Value is also a matrix type.
         using Distance = double;
         using Compare = MatrixLess;
 
@@ -32,7 +49,7 @@ namespace delta::testing {
         FrobeniusMetric metric;
         EuclideanValueMetric value_metric;
 
-        // Оператор для матриц (должен быть определён в delta_operator.h)
+        // Operator for matrices (defined in delta_operator.h)
         MatrixMidpointOperator op;
         auto strategy = StaticStrategy<MatrixMidpointOperator>(op);
 
@@ -40,7 +57,7 @@ namespace delta::testing {
             EuclideanValueMetric, decltype(strategy), Compare>(
                 grid0, strategy, betweenness, metric, value_metric);
 
-        // Функция возвращает саму матрицу
+        // Function returns the matrix itself.
         auto func = [](const Addr& m) -> Addr { return m; };
 
         Eigen::MatrixXd prev(2, 2); prev.setZero();
@@ -56,7 +73,11 @@ namespace delta::testing {
             path.advance(func);
         }
     }
-    // Edge cases: empty grid and single point
+
+    /**
+     * @test EmptyGridRiemannSum
+     * @brief Verify that the left Riemann sum on an empty grid returns a zero matrix.
+     */
     TEST_F(MatrixPathTest, EmptyGridRiemannSum) {
         using Addr = Eigen::MatrixXd;
         using Compare = MatrixLess;
@@ -64,9 +85,13 @@ namespace delta::testing {
         auto func = [](const Addr&) -> Addr { return Addr::Zero(2, 2); };
         auto sum = left_riemann_sum(empty_grid, func);
         EXPECT_TRUE(sum.isZero(1e-12));
-        // Размеры не проверяем, так как для пустой сетки они не определены
+        // Dimensions are not checked because an empty grid has no points.
     }
 
+    /**
+     * @test SinglePointGridRiemannSum
+     * @brief Verify that the left Riemann sum on a grid with a single point returns zero.
+     */
     TEST_F(MatrixPathTest, SinglePointGridRiemannSum) {
         using Addr = Eigen::MatrixXd;
         using Compare = MatrixLess;
@@ -77,51 +102,14 @@ namespace delta::testing {
         EXPECT_TRUE(sum.isZero(1e-12));
     }
 
-    //// Differentiability of identity function
-    //TEST_F(MatrixPathTest, DISABLED_IdentityDifferentiability) {
-    //    using Addr = Eigen::MatrixXd;
-    //    using Value = Eigen::MatrixXd;
-    //    using Distance = double;
-    //    using Compare = MatrixLess;
-    //    using Grid = ListGrid<Addr, Compare>;
-    //    using Path = DeltaPath<Addr, Value, Distance, LessBetweenness, FrobeniusMetric,
-    //        EuclideanValueMetric, StaticStrategy<MatrixMidpointOperator>, Compare>;
-
-    //    Eigen::MatrixXd a(2, 2); a << 0, 0, 0, 0;
-    //    Eigen::MatrixXd b(2, 2); b << 1, 0, 0, 1;
-    //    Grid grid0({ a, b });
-
-    //    MatrixMidpointOperator op;
-    //    auto strategy = StaticStrategy<MatrixMidpointOperator>(op);
-    //    LessBetweenness betweenness;
-    //    FrobeniusMetric metric;
-    //    EuclideanValueMetric value_metric;
-
-    //    Path path(grid0, strategy, betweenness, metric, value_metric);
-    //    auto func = [](const Addr& x) -> Addr { return x; };
-
-    //    std::vector<Grid> grids;
-    //    grids.push_back(path.current_grid());
-    //    for (int i = 0; i < 3; ++i) {
-    //        path.advance(func);
-    //        grids.push_back(path.current_grid());
-    //    }
-
-    //    Addr x(2, 2); x << 0.5, 0, 0, 0.5;
-    //    Value D(2, 2); D << 1, 0, 0, 1;
-    //    PowerModulus<double> modulus(0.0, 1.0);
-
-    //    std::size_t first_level = 0;
-    //    for (; first_level < grids.size(); ++first_level) {
-    //        if (find_address_index(grids[first_level], x) >= 0) break;
-    //    }
-    //    ASSERT_LT(first_level, grids.size());
-
-    //    bool diff = check_differentiability(grids, x, func, D, modulus, first_level, 1e-10);
-    //    EXPECT_TRUE(diff);
-    //}
-
-    // Integral of identity function on [0,1] should be approximately 0.5 * I
+    /**
+     * @test IdentityIntegral
+     * @brief Check that the integral of the identity function on [0,1] (as matrices)
+     *        approaches 0.5·I after several uniform refinements.
+     *
+     * Starting from the endpoints 0·I and I, five midpoint refinements are applied.
+     * The left Riemann sum should converge to 0.5·I with an error below 1e‑10.
+     */
     TEST_F(MatrixPathTest, IdentityIntegral) {
         using Addr = Eigen::MatrixXd;
         using Compare = MatrixLess;
@@ -153,7 +141,14 @@ namespace delta::testing {
         EXPECT_TRUE(integral.isApprox(expected_mat, 1e-10));
     }
 
-    // AdaptiveDeltaPath for matrix function f(X) = X^2
+    /**
+     * @test AdaptivePathForSquare
+     * @brief Verify that AdaptiveDeltaPath works with matrix‑valued functions.
+     *
+     * An adaptive path is created for f(X)=X² on the interval [0·I, I].
+     * Several refinement steps are performed; the path must increase in size
+     * and remain sorted according to MatrixLess.
+     */
     TEST_F(MatrixPathTest, AdaptivePathForSquare) {
         using Addr = Eigen::MatrixXd;
         using Value = Eigen::MatrixXd;
@@ -161,6 +156,7 @@ namespace delta::testing {
         using Compare = MatrixLess;
         using Metric = FrobeniusMetric;
         using ValMetric = EuclideanValueMetric;
+        // For matrix addresses a simple betweenness that always returns true is sufficient.
         struct DummyBetweenness {
             bool operator()(const Addr&, const Addr&, const Addr&) const { return true; }
         };
@@ -181,10 +177,11 @@ namespace delta::testing {
         const int max_steps = 5;
         while (steps < max_steps && path.advance()) {
             ++steps;
-            // Проверим упорядоченность: для матриц используем компаратор MatrixLess
+            // Verify that points remain sorted according to the matrix comparator.
             EXPECT_TRUE(std::is_sorted(path.points().begin(), path.points().end(), Compare()));
         }
         EXPECT_GT(steps, 0);
         EXPECT_GT(path.size(), 2);
     }
+
 } // namespace delta::testing

@@ -5,30 +5,50 @@
 
 namespace delta::testing {
 
+    /**
+     * @class RiemannSumTest
+     * @brief Tests for the Riemann sum functions (left, right, tagged).
+     *
+     * Verifies that Riemann sums on dyadic grids give the expected values
+     * for simple functions and that edge cases (empty grid, single point)
+     * are handled correctly.
+     */
     class RiemannSumTest : public DeltaTest {};
 
+    /**
+     * @test Left Riemann sum of f(x)=x on a dyadic path.
+     *       At level 0 (grid [0,1]) the sum is 0.
+     *       At level 1 (grid [0, 1/2, 1]) the sum is 1/4.
+     *       At level 2 (grid [0, 1/4, 1/2, 3/4, 1]) the sum is 3/8.
+     */
     TEST_F(RiemannSumTest, LeftSumIdentityOnDyadic) {
         ListGrid<Addr, Compare> grid({ 0_r, 1_r });
         auto path = make_midpoint_path(grid);
 
         auto func = [](const Addr& x) { return x; };
 
-        // Уровень 0: сетка [0,1], левая сумма = 0 * 1 = 0
+        // Level 0: grid [0,1], left sum = 0 * 1 = 0
         auto sum0 = calculus::left_riemann_sum(path.current_grid(), func);
         EXPECT_EQ(sum0, 0_r);
 
         path.advance(func);
-        // Уровень 1: сетка [0, 1/2, 1], левая сумма = 0*0.5 + 0.5*0.5 = 0.25
+        // Level 1: grid [0, 1/2, 1], left sum = 0*0.5 + 0.5*0.5 = 0.25
         auto sum1 = calculus::left_riemann_sum(path.current_grid(), func);
         EXPECT_EQ(sum1, 1_r / 4_r);
 
         path.advance(func);
-        // Уровень 2: сетка [0, 1/4, 1/2, 3/4, 1], левая сумма =
+        // Level 2: grid [0, 1/4, 1/2, 3/4, 1], left sum =
         // 0*0.25 + 0.25*0.25 + 0.5*0.25 + 0.75*0.25 = (0+0.25+0.5+0.75)*0.25 = 1.5*0.25 = 0.375
         auto sum2 = calculus::left_riemann_sum(path.current_grid(), func);
         EXPECT_EQ(sum2, 3_r / 8_r);
     }
 
+    /**
+     * @test Right Riemann sum of f(x)=x on a dyadic path.
+     *       At level 0 the sum is 1.
+     *       At level 1 the sum is 3/4.
+     *       At level 2 the sum is 5/8.
+     */
     TEST_F(RiemannSumTest, RightSumIdentityOnDyadic) {
         ListGrid<Addr, Compare> grid({ 0_r, 1_r });
         auto path = make_midpoint_path(grid);
@@ -48,6 +68,10 @@ namespace delta::testing {
         EXPECT_EQ(sum2, 5_r / 8_r);
     }
 
+    /**
+     * @test Tagged Riemann sum with a left‑point tagger on grid [0,1,2].
+     *       For f(x)=x², the left‑tagged sum should use the left endpoint of each subinterval.
+     */
     TEST_F(RiemannSumTest, TaggedSumWithLeftTagger) {
         ListGrid<Addr, Compare> grid({ 0_r, 1_r, 2_r });
         auto func = [](const Addr& x) { return x * x; };
@@ -58,6 +82,10 @@ namespace delta::testing {
         EXPECT_EQ(sum, expected);
     }
 
+    /**
+     * @test Tagged Riemann sum with a right‑point tagger on grid [0,1,2].
+     *       For f(x)=x², the right‑tagged sum should use the right endpoint of each subinterval.
+     */
     TEST_F(RiemannSumTest, TaggedSumWithRightTagger) {
         ListGrid<Addr, Compare> grid({ 0_r, 1_r, 2_r });
         auto func = [](const Addr& x) { return x * x; };
@@ -68,6 +96,9 @@ namespace delta::testing {
         EXPECT_EQ(sum, expected);
     }
 
+    /**
+     * @test Riemann sum on an empty grid should return zero.
+     */
     TEST_F(RiemannSumTest, EmptyGridReturnsZero) {
         ListGrid<Addr, Compare> empty;
         auto func = [](const Addr&) { return 1_r; };
@@ -75,6 +106,9 @@ namespace delta::testing {
         EXPECT_EQ(sum, 0_r);
     }
 
+    /**
+     * @test Riemann sum on a single‑point grid should return zero.
+     */
     TEST_F(RiemannSumTest, SinglePointGridReturnsZero) {
         ListGrid<Addr, Compare> grid({ 42_r });
         auto func = [](const Addr&) { return 1_r; };

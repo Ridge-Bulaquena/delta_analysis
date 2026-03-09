@@ -5,8 +5,19 @@
 
 using namespace delta::testing;
 
+/**
+ * @class GridTest
+ * @brief Tests for the ListGrid class (basic grid functionality).
+ *
+ * Verifies construction, sorting invariants, and refinement operations
+ * with different point insertion strategies.
+ */
 class GridTest : public DeltaTest {};
 
+/**
+ * @test Verify that a grid can be constructed from a sorted initializer list,
+ *       that its size and elements are correct, and that it is sorted.
+ */
 TEST_F(GridTest, Construction) {
     ListGrid<Addr, Compare> grid({ 1_r, 2_r, 3_r });
     EXPECT_EQ(grid.size(), 3);
@@ -17,10 +28,17 @@ TEST_F(GridTest, Construction) {
     EXPECT_TRUE(bounds_match(grid, 1_r, 3_r));
 }
 
+/**
+ * @test Construction with a sorted list should not throw.
+ */
 TEST_F(GridTest, SortedInputPasses) {
     EXPECT_NO_THROW((ListGrid<Addr, Compare>({ 1_r, 2_r, 3_r })));
 }
 
+/**
+ * @test Refinement using the midpoint operator should insert the midpoint
+ *       between every pair of consecutive points, preserving order and bounds.
+ */
 TEST_F(GridTest, RefineMidpoint) {
     ListGrid<Addr, Compare> grid({ 0_r, 1_r });
     auto refined = grid.refine([](const Addr& x, const Addr& y) {
@@ -34,6 +52,10 @@ TEST_F(GridTest, RefineMidpoint) {
     EXPECT_TRUE(bounds_match(refined, 0_r, 1_r));
 }
 
+/**
+ * @test Refinement with a general lambda (here a fixed fraction λ=1/3) should
+ *       insert points at the specified fraction, maintaining order.
+ */
 TEST_F(GridTest, RefineLambda) {
     ListGrid<Addr, Compare> grid({ 0_r, 1_r });
     Rational lambda = 1_r / 3_r;

@@ -5,21 +5,31 @@
 
 namespace delta::testing {
 
+    /**
+     * @class ModulusTest
+     * @brief Tests for modulus of continuity classes (PowerModulus, LogarithmicModulus).
+     */
     class ModulusTest : public DeltaTest {};
 
+    /**
+     * @test Verify the PowerModulus for both double and Rational types.
+     */
     TEST_F(ModulusTest, PowerModulus) {
-        // тестируем double-версию
+        // test the double version
         PowerModulus<double> mod_d(2.0, 1.5);
         EXPECT_DOUBLE_EQ(mod_d(0.0), 0.0);
         EXPECT_DOUBLE_EQ(mod_d(4.0), 2.0 * std::pow(4.0, 1.5));
         EXPECT_NEAR(mod_d(0.25), 2.0 * std::pow(0.25, 1.5), 1e-12);
 
-        // тестируем Rational-версию
+        // test the Rational version
         PowerModulus<Rational> mod_r(2_r, Rational(3, 2)); // 2 * delta^1.5
-        // ожидаем, что приближённо равно
+        // we expect approximate equality
         EXPECT_NEAR(mod_r(4_r).convert_to<double>(), 2.0 * std::pow(4.0, 1.5), 1e-12);
     }
 
+    /**
+     * @test Verify the LogarithmicModulus for double.
+     */
     TEST_F(ModulusTest, LogarithmicModulus) {
         LogarithmicModulus<double> mod(1.0, 2.0);
         double delta = 0.1;
@@ -28,15 +38,22 @@ namespace delta::testing {
         EXPECT_TRUE(std::isinf(mod(0.0)));
     }
 
+    /**
+     * @test Check that the modulus classes satisfy the Modulus concept.
+     */
     TEST_F(ModulusTest, ModulusConcept) {
         static_assert(Modulus<PowerModulus<double>, double>);
         static_assert(Modulus<LogarithmicModulus<double>, double>);
     }
 
     // -------------------------------------------------------------------------
-    // Тестирование check_continuity_level с разными модулями (Rational)
+    // Testing check_continuity_level with different moduli (Rational)
     // -------------------------------------------------------------------------
 
+    /**
+     * @class ContinuityModulusTest
+     * @brief Tests continuity checks using various moduli on a dyadic path.
+     */
     class ContinuityModulusTest : public DeltaTest {
     protected:
         void SetUp() override {
@@ -54,10 +71,12 @@ namespace delta::testing {
             decltype(make_midpoint_strategy()), Compare>> path_;
     };
 
-    // Функция f(x)=x, для которой |Δf| = шаг сетки
+    /**
+     * @test Identity function f(x)=x, for which |Δf| equals the grid step.
+     */
     TEST_F(ContinuityModulusTest, IdentityWithPowerModulus) {
-        auto func = [](const Addr& x) { return x; }; // возвращает Rational
-        ValMetric vm; // EuclideanValueMetric для Rational
+        auto func = [](const Addr& x) { return x; }; // returns Rational
+        ValMetric vm; // EuclideanValueMetric for Rational
 
         PowerModulus<Rational> mod(1_r, 1_r);
 
@@ -69,7 +88,9 @@ namespace delta::testing {
         }
     }
 
-    // Функция f(x)=x^2
+    /**
+     * @test Quadratic function f(x)=x².
+     */
     TEST_F(ContinuityModulusTest, QuadraticWithPowerModulus) {
         auto func = [](const Addr& x) { return x * x; };
         ValMetric vm;
@@ -84,11 +105,13 @@ namespace delta::testing {
         }
     }
 
-    // Функция f(x)=sqrt(x), Holder с α=0.5
+    /**
+     * @test Square root function f(x)=√x (Hölder with α=0.5).
+     */
     TEST_F(ContinuityModulusTest, SqrtWithHolderModulus) {
         auto func = [](const Addr& x) -> Rational {
             double val = std::sqrt(x.convert_to<double>());
-            return Rational(static_cast<int64_t>(val * 1e12), 1e12); // приближение
+            return Rational(static_cast<int64_t>(val * 1e12), 1e12); // approximation
             };
         ValMetric vm;
 
@@ -102,7 +125,9 @@ namespace delta::testing {
         }
     }
 
-    // Функция sqrt с линейным модулем должна провалиться
+    /**
+     * @test Square root with a linear modulus should fail.
+     */
     TEST_F(ContinuityModulusTest, SqrtFailsWithLinearModulus) {
         auto func = [](const Addr& x) -> Rational {
             double val = std::sqrt(x.convert_to<double>());
@@ -110,7 +135,7 @@ namespace delta::testing {
             };
         ValMetric vm;
 
-        PowerModulus<Rational> mod(1_r, 1_r); // линейный
+        PowerModulus<Rational> mod(1_r, 1_r); // linear
 
         bool all_ok = true;
         for (int n = 0; n < 10; ++n) {
@@ -123,9 +148,13 @@ namespace delta::testing {
     }
 
     // -------------------------------------------------------------------------
-    // Тестирование check_differentiability с модулями
+    // Testing check_differentiability with moduli
     // -------------------------------------------------------------------------
 
+    /**
+     * @class DifferentiabilityModulusTest
+     * @brief Tests differentiability checks using various moduli.
+     */
     class DifferentiabilityModulusTest : public DeltaTest {
     protected:
         void SetUp() override {
@@ -143,7 +172,9 @@ namespace delta::testing {
         std::vector<ListGrid<Addr, Compare>> grids_;
     };
 
-    // f(x)=x, производная 1, ошибка = 0
+    /**
+     * @test Identity function f(x)=x, derivative 1, error = 0.
+     */
     TEST_F(DifferentiabilityModulusTest, Identity) {
         auto func = [](const Addr& x) { return x; };
         Addr x = 1_r / 2_r;
@@ -153,7 +184,9 @@ namespace delta::testing {
         EXPECT_TRUE(diff);
     }
 
-    // f(x)=x^2, производная 2x, ошибка ≤ шаг сетки
+    /**
+     * @test Quadratic f(x)=x², derivative 2x, error ≤ grid step.
+     */
     TEST_F(DifferentiabilityModulusTest, Quadratic) {
         auto func = [](const Addr& x) { return x * x; };
         Addr x = 1_r / 2_r;
@@ -163,7 +196,9 @@ namespace delta::testing {
         EXPECT_TRUE(diff);
     }
 
-    // f(x)=|x| в нуле — не дифференцируема
+    /**
+     * @test Absolute value at zero — not differentiable.
+     */
     TEST_F(DifferentiabilityModulusTest, AbsoluteValue) {
         ListGrid<Addr, Compare> grid0({ -1_r, 0_r, 1_r });
         auto path = make_midpoint_path(grid0);

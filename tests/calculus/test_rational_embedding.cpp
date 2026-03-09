@@ -4,8 +4,17 @@
 
 namespace delta::testing {
 
+    /**
+     * @class RationalEmbeddingTest
+     * @brief Tests for the embedding of rational numbers into real numbers
+     *        via fundamental sequences.
+     */
     class RationalEmbeddingTest : public DeltaTest {};
 
+    /**
+     * @test Verify that two real numbers constructed from the same rational
+     *       are considered equal and approximately equal within a tolerance.
+     */
     TEST_F(RationalEmbeddingTest, RationalToReal) {
         RealNumber r1(3_r);
         RealNumber r2(3_r);
@@ -17,12 +26,16 @@ namespace delta::testing {
         EXPECT_FALSE(r1 == r3);
     }
 
+    /**
+     * @test Verify that two different fundamental sequences converging to the
+     *       same rational number produce equivalent real numbers.
+     */
     TEST_F(RationalEmbeddingTest, DifferentRepresentationsSameRational) {
-        // Постоянная последовательность для 3
+        // Constant sequence for 3
         auto seq1 = std::make_shared<FundamentalSequence>(
             [](std::size_t) { return 3_r; }, Rational(0), Rational(1, 2), 0);
 
-        // Последовательность, сходящаяся к 3: 3 + 1/2^n
+        // Sequence converging to 3: 3 + 1/2^n
         auto seq2 = std::make_shared<FundamentalSequence>(
             [](std::size_t n) { return 3_r + Rational(1) / pow2(n); },
             Rational(1), Rational(1, 2), 0);

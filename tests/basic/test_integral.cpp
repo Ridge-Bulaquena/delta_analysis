@@ -4,8 +4,24 @@
 
 using namespace delta::testing;
 
+/**
+ * @class IntegralTest
+ * @brief Tests for Riemann sums (integration) on delta paths.
+ *
+ * Verifies that left Riemann sums approximate the true integral
+ * and that the error decreases as the grid is refined.
+ */
 class IntegralTest : public DeltaTest {};
 
+/**
+ * @brief Compute the left Riemann sum of a function over the current grid of a path.
+ *
+ * @tparam Path A type that provides a `current_grid()` method returning a grid
+ *              with `data()` and `size()` and supports `operator[]`.
+ * @param path  The path containing the grid.
+ * @param func  The function to integrate.
+ * @return      The left Riemann sum as a Rational.
+ */
 template<typename Path>
 Rational left_riemann_sum(const Path& path, const typename Path::Func& func) {
     const auto& grid = path.current_grid();
@@ -17,6 +33,13 @@ Rational left_riemann_sum(const Path& path, const typename Path::Func& func) {
     return sum;
 }
 
+/**
+ * @test Approximate the integral of f(x)=x on [0,1] using a dyadic path.
+ *
+ * The true integral is 0.5. As the grid refines, the left Riemann sum
+ * should converge to 0.5, and the error should decrease monotonically.
+ * Here we only check that after 10 refinements the error is below 1e-3.
+ */
 TEST_F(IntegralTest, DyadicX) {
     ListGrid<Addr, Compare> grid0({ 0_r, 1_r });
     auto path = make_midpoint_path(grid0);
@@ -31,7 +54,7 @@ TEST_F(IntegralTest, DyadicX) {
 
     Rational expected = 1_r / 2_r;
     Rational error = sums.back() - expected;
-    // Ошибка должна уменьшаться с каждым шагом
+    // The error should decrease with each refinement step.
     EXPECT_RATIONAL_NEAR(error, 0_r, Rational(1, 1000));
-    // Дополнительно можно проверить монотонность убывания ошибки
+    // Optionally one could also check monotonic decrease of the error.
 }
