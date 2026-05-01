@@ -42,6 +42,54 @@ Addresses can be `Eigen::MatrixXd`. The library builds uniform grids of matrices
 Using a modulus of continuity (e.g., `C·δ^α`), the library verifies whether a function satisfies that modulus on a given grid. For `sqrt(x)` on `[0,1]` it confirms Hölder continuity with exponent `1/2`, while a linear modulus fails – exactly as expected. Similarly, it checks differentiability by comparing one‑sided difference quotients against a modulus of convergence.  
 🔍 *Tests*: `tests/calculus/test_modulus_continuity.cpp`, `test_differentiability.cpp`.
 
+
+### 8. Math + Philosophy Text Analyzer
+The library now includes a lightweight `MathPhilosophyAnalyzer` that inspects prose and scores:
+- mathematical rigor signals (theorem/lemma/proof/limit/etc.),
+- philosophical depth signals (ontology/epistemology/argument/etc.),
+- logical structure (because/therefore/hence/if-then),
+- quantifier usage (all/every/exists/some).
+
+It returns a structured report with densities, two quality scores (`rigor_score`, `argument_score`), top detected keywords, and targeted recommendations to strengthen weak drafts.
+🔍 *Test*: `tests/basic/test_math_philosophy_analyzer.cpp`.
+
+
+### 9. Study Math Validator (Cycles, Type Errors, Predictive Contradictions)
+`StudyMathAnalyzer` validates machine-readable study statements and checks three classes of issues:
+1. **Logical cycles** in implication graphs (e.g., `A -> B -> C -> A`).
+2. **Mathematical type errors** (e.g., scalar-vector addition, incompatible equation sides).
+3. **Predictive contradictions** in numeric claims (e.g., `predict x > 10` and `predict x < 5`).
+
+This gives a practical "study sanity pass" before deeper theorem-level review.
+🔍 *Test*: `tests/basic/test_study_math_analyzer.cpp`.
+
+
+### 10. Formal Consistency Analyzer with Claim Graph
+`LogicalConsistencyAnalyzer` builds a **claim graph** (nodes + labeled edges) from machine-readable study statements and flags:
+- **Direct contradictions** (`P` and `¬P` / `!P`).
+- **Circular reasoning** (a claim directly/indirectly supporting itself).
+- **Invalid inference rules**, including **affirming the consequent** (`A -> B`, infer `A` from `B`).
+
+The report includes highlighted problematic edges and a **consistency score (0–100)** for rapid triage.
+🔍 *Test*: `tests/basic/test_logical_consistency_analyzer.cpp`.
+
+
+### 11. Ten-Dimension Paper Validity & Plausibility Audit
+`PaperValidityAnalyzer` evaluates uploaded paper evidence across ten built-in dimensions:
+1. **LogiCheck** (logical contradictions, circularity, invalid inference)
+2. **MathSanity** (type errors and unit mismatch heuristics)
+3. **StatVal** (statistical red flags and p-hacking indicators)
+4. **ClaimBridge** (claim↔citation support coherence)
+5. **PriorPlaus** (known-physics plausibility checks)
+6. **ReproCheck** (methodological completeness for reproducibility)
+7. **GraphFidelity** (figure duplication and text-data mismatch flags)
+8. **NoiseFloor** (precision versus instrument noise)
+9. **PreregMap** (consistency with provided preregistration)
+10. **TheoryFit** (parsimony, depth, unification, fruitfulness, resilience)
+
+The report returns per-dimension scores/findings and an aggregate overall score.
+🔍 *Test*: `tests/basic/test_paper_validity_analyzer.cpp`.
+
 Every feature listed above is backed by tests (as well as theorems in source research) and demonstrates something that classical analysis either cannot do, *does not even know that it should do*, or requires heavy additional machinery. 
 
 All these features are implemented, tested, and ready for experimentation. Most notably, these 'killer features' are not even the endpoint but the by-product. These are only the beginning where we've successfully implemented roughly 100 pages of the 900-pages source.
