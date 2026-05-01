@@ -7,10 +7,16 @@ if (POLICY CMP0141)
   set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "ProgramDatabase")
 endif()
 
-project("delta_analysis" LANGUAGES CXX)
+project("delta_analysis" VERSION 0.1.0 LANGUAGES CXX)
+
+include(CTest)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+
+option(DELTA_ENABLE_WARNINGS "Enable strict compiler warnings" ON)
+option(DELTA_ENABLE_SANITIZERS "Enable ASAN/UBSAN in Debug builds for non-MSVC" OFF)
 
 # 2. OpenMP configuration (LLVM backend for MSVC)
 if(MSVC)
@@ -65,6 +71,13 @@ if(MSVC)
     target_compile_options(delta_core INTERFACE /EHsc /Zc:__cplusplus)
     # Define EIGEN_HAS_OPENMP to let Eigen use OpenMP.
     target_compile_definitions(delta_core INTERFACE EIGEN_HAS_OPENMP)
+elseif(DELTA_ENABLE_WARNINGS)
+    target_compile_options(delta_core INTERFACE -Wall -Wextra -Wpedantic)
+endif()
+
+if(DELTA_ENABLE_SANITIZERS AND CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT MSVC)
+    target_compile_options(delta_core INTERFACE -fsanitize=address,undefined -fno-omit-frame-pointer)
+    target_link_options(delta_core INTERFACE -fsanitize=address,undefined)
 endif()
 
 # Option to select static vs dynamic rational backend (see delta/core/rational.h)

@@ -1,18 +1,12 @@
-# garbage from CMake
-/out/
 /build/
-/.vs/
-
-# vcpkg local libraries
-/vcpkg_installed/
-vcpkg-configuration.json
-
-# Temp files
+/out/
+/.cache/
+/.vscode/
+/.idea/
+*.swp
 *.user
-*.sln
-*.vcxproj*
-
-#local dev crutch-tools
-devjournal.md
-concat_codebase_to_txt.bat
-combined_codebase.txt
+*.suo
+*.log
+compile_commands.json
+Testing/
+.vcpkg/

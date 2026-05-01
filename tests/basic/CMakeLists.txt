@@ -22,6 +22,10 @@ add_executable(delta_tests_basic
     test_sqrt2.cpp                        # √2 approximation test
     test_non_commutativity.cpp            # Non‑commutativity of operators
     test_differentiability.cpp            # Differentiability checks
+    test_math_philosophy_analyzer.cpp     # Math/philosophy text analyzer checks
+    test_study_math_analyzer.cpp          # Study math validation checks
+    test_logical_consistency_analyzer.cpp # Formal logic consistency checks
+    test_paper_validity_analyzer.cpp      # Ten-dimension paper validity analyzer
 )
 
 # Add the parent directory (tests/) to the include path so that "test_fixtures.h" can be included.
